@@ -12,11 +12,14 @@ using TwitchLib.Communication.Clients;
 using TwitchLib.Communication.Models;
 using TwitchLib.Api;
 using TwitchLib.Api.Services;
+using TwitchLib.Api.Services.Events.FollowerService;
 using TwitchLib.Api.Helix.Models.Users;
 using TwitchLib.Api.Core.Enums;
 using System.Text.RegularExpressions;
 using TwitchLib.Api.Helix.Models.Channels.ModifyChannelInformation;
 using TwitchLib.Api.Helix.Models.Channels.GetChannelInformation;
+using TwitchLib.EventSub.Websockets;
+using TwitchLib.EventSub.Core;
 
 
 namespace TwitchBot
@@ -61,6 +64,7 @@ namespace TwitchBot
             client.OnGiftedSubscription += Client_OnGiftedSubscription;
             client.OnPrimePaidSubscriber += Client_OnPrimePaidSubscriber;
             client.OnContinuedGiftedSubscription += Client_OnContinuedGiftedSubscription;
+            //create a follow listener
             chatters.Add(Program.config.channel);
             //client.OnConnected += Client_OnConnected;
 

@@ -7,6 +7,7 @@ namespace TwitchBot
 {
     public class Core{
         public async Task<BotSystem> GetSettings(){
+            //initialize the default settings
             BotSystem cfg = new BotSystem();
             cfg.channel = "ChannelGoesHere";
             cfg.name = "awesomebean_bot";
@@ -45,10 +46,10 @@ namespace TwitchBot
             cfg.ignoreToken = false;
             cfg.autoDeleteSpam = false;
             string writeConfig = GetConfigString(cfg);
-
+            //check if the config file exists
             string[] lines = SaveSystem.GetPlaintextFile("config.dat");
             if(lines != null) {
-                //read the data using our current format
+                //go through each line
                 for (int i = 0; i < lines.Length; i++)
                 {
                     try{
@@ -66,6 +67,8 @@ namespace TwitchBot
                         else{ data = line[1]; }
                         string key = line[0];
                         //Console.WriteLine($"`{key}` = `{data}`");
+
+                        //read the config and set any values that are found
                         if (key == "ChannelName") { cfg.channel = data.ToLower(); }
                         else if (key == "Prefix") { cfg.prefix = data; }
                         else if (key == "Currency") { cfg.currency = data; }
@@ -120,6 +123,7 @@ namespace TwitchBot
                 Console.WriteLine("Configure The Config File Then Restart The Bot");
                 await Task.Delay(-1);
             }
+            //update the config file with any new values
             writeConfig = GetConfigString(cfg);
             await SaveSystem.CreatePlaintextFile("config.dat", writeConfig);
             return cfg;
