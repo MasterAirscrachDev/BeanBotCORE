@@ -1,0 +1,7 @@
+persistent variables
+
+fix temp multis
+
+update the bot and public the repo
+
+global vars broken (when relolading, store in temp buffer, then overwrite to main buffer)
