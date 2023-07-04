@@ -248,7 +248,7 @@
     <Compile Include="EventSystem.cs" />
     <Compile Include="FileSuper.cs" />
     <Compile Include="GitHubConnector.cs" />
-    <Compile Include="GlobalKeysend.cs" />
+    <Compile Include="GlobalKey.cs" />
     <Compile Include="HelpCommands.cs" />
     <Compile Include="MinigameCommands.cs" />
     <Compile Include="PointCommands.cs" />

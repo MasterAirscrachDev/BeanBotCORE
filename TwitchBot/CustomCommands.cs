@@ -288,9 +288,9 @@ namespace TwitchBot
                     else if (func == "Getglobalvar") { commandVar var = GetGlobalVar(args); vars = MergeVars(var, vars); }
                     else if (func == "Playsound") { string location = args.Remove(args.Length - 1, 1).Remove(0, 1);  if (!PlaySound(location, false, true)) { lr.error = true; lr.errorCode = "Sound Path Incorrect or not Found"; return lr; } else if(!check){ PlaySound(location);} }
                     else if (func == "Playlongsound") { string location = args.Remove(args.Length - 1, 1).Remove(0, 1); if (!PlaySound(location, true, true)) { lr.error = true; lr.errorCode = "Sound Path Incorrect or not Found"; return lr; } else if(!check){ PlaySound(location, true); } }
-                    else if (func == "Modpoints"){ try{ int mod = int.Parse(args); if(!check){SaveUserWithChange(data.user.name, mod);} } catch{ lr.error = true; lr.errorCode = $"pointChange Failed to Parse: '{args}'"; return lr; } }
-                    else if (func == "ModpointsUserMulti"){ try{ int mod = int.Parse(args); if(!check){SaveUserWithChange(data.user.name, Program.GetUserMultipliedPoints(mod, data.user), 0,0,true); } } catch{ lr.error = true; lr.errorCode = $"multiPointChange Failed to Parse: '{args}'"; return lr; } }
-                    else if (func == "ModpointsMulti"){ try{ int mod = int.Parse(args); if(!check){SaveUserWithChange(data.user.name, Program.GetMaxMultipliedPoints(mod, data.user), 0,0,true); } } catch{ lr.error = true; lr.errorCode = $"multiPointChange Failed to Parse: '{args}'"; return lr; } }
+                    else if (func == "Modpoints"){ try{ int mod = int.Parse(args); if(!check){SaveUserWithChange(data.user.name, mod); data.user.points += mod; } } catch{ lr.error = true; lr.errorCode = $"pointChange Failed to Parse: '{args}'"; return lr; } }
+                    else if (func == "ModpointsUserMulti"){ try{ int mod = int.Parse(args); if(!check){ mod = Program.GetUserMultipliedPoints(mod, data.user); SaveUserWithChange(data.user.name, mod, 0,0,true); data.user.points += mod; } } catch{ lr.error = true; lr.errorCode = $"multiPointChange Failed to Parse: '{args}'"; return lr; } }
+                    else if (func == "ModpointsMulti"){ try{ int mod = int.Parse(args); if(!check){mod = Program.GetMaxMultipliedPoints(mod, data.user); SaveUserWithChange(data.user.name, mod, 0,0,true); data.user.points += mod; } } catch{ lr.error = true; lr.errorCode = $"multiPointChange Failed to Parse: '{args}'"; return lr; } }
                     else if (func == "Globalkey"){ if(check && !SendGlobalKey(args, true)){lr.error = true; lr.errorCode = "Unknown Key"; return lr;}else{ SendGlobalKey(args);}}
                     else if (func == "Movemouse"){ if(check && !MouseMove(args, true)){lr.error = true; lr.errorCode = "Invalid Mouse Pos"; return lr;}else{ MouseMove(args);}}
                     else if (func == "GetRandomNum"){ commandVar var = GetRandomInRange(args, data.GetHashCode()); if(var == null) { lr.error = true; lr.errorCode = "Random Num Generation Failed"; return lr;}else{ vars = MergeVars(var, vars); }}
@@ -500,7 +500,7 @@ namespace TwitchBot
             lr.vars = vars.ToArray();
             return lr;
         }
-        async Task SaveUserWithChange(string user, int pChange, int gpChange =0, int ttsChange = 0, bool withMulti = false){
+        async Task SaveUserWithChange(string user, int pChange, int gpChange = 0, int ttsChange = 0, bool withMulti = false){
             //get the user
             User data = await SaveSystem.GetUser(user);
             //add the change

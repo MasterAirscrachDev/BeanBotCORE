@@ -57,6 +57,7 @@ Send The Following Whisper To The Bot to Authenticate
             }
             if(config.channel == "masterairscrach"){allowDebug = true;} //enable debugging for masterairscrach
             twitchLibInterface.bot.AuthConfirmed(); //alert the botcode that the authkey is confirmed
+            //GlobalKeyListener.ListenForSS(); //this causes errors atm
             await Task.Delay(-1); //wait forever
         }
         static async Task Setup(){

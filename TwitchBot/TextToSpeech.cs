@@ -118,33 +118,7 @@ namespace TwitchBot
                 return data;
             }
             if(Program.config.betaTTSFilter && (length > 10 || length == 1)){
-                if(length == 1){ Program.Log("TTS Failed: single char message", MessageType.Warning); return data;}
-                //do checks for the message to prevent spam
-                //int spaces = message.Count(f => f == ' ');
-                //if(spaces < 3){ Console.BackgroundColor = ConsoleColor.DarkYellow; Console.WriteLine("TTS Failed: not enough spaces"); return data; }
-                string[] words = message.Split(' ');
-                int wordCount = words.Length;
-                if(wordCount == 1 && words[0].Length > 15){ Program.Log("TTS Failed: single long word", MessageType.Warning); return data; }
-                //if any of the words is longer than 20 characters fail
-                foreach(string word in words){ if(word.Length > 20){ Program.Log("TTS Failed: found word too long", MessageType.Warning); return data; } }
-                //check the max number of duplicate words
-                int maxDuplicateWords = 0;
-                string maxDuplicateWord = "";
-                for(int i = 0; i < wordCount; i++){
-                    int duplicateWords = 0;
-                    for(int j = 0; j < wordCount; j++){ if(words[i] == words[j]){ duplicateWords++; } }
-                    if(duplicateWords > maxDuplicateWords){
-                        maxDuplicateWords = duplicateWords; maxDuplicateWord = words[i];
-                    }
-                }
-                //what was man smoking when he made these numbers
-                //get the ratio of duplicate words to total words
-                float ratio = (float)maxDuplicateWords / (float)wordCount;
-                Program.Log($"Duplicates: {ratio * 100}%", MessageType.Debug);
-                if(ratio > 0.5f){ Program.Log("TTS Failed: too many duplicate words 0", MessageType.Warning); return data; }
-                //if(maxDuplicateWords > 5 && words.Length > 6){ Console.BackgroundColor = ConsoleColor.DarkYellow; Console.WriteLine("TTS Failed: too many duplicate words 1"); return data; }
-                //else if(maxDuplicateWords > 8 && words.Length > 2){ Console.BackgroundColor = ConsoleColor.DarkYellow; Console.WriteLine("TTS Failed: too many duplicate words 2"); return data; }
-                Program.Log("TTS Filter Passed", MessageType.Success);
+                if(!FilterText(message)){ return data; }
             }
             Program.Log($"Length of message: {length}", MessageType.Debug);
             int cost = length / Program.config.ttsPerToken;
@@ -176,6 +150,55 @@ namespace TwitchBot
                 return data;
             }
             
+        }
+        bool FilterText(string message){
+            if(message.Length == 1){ Program.Log("TTS Failed: single char message", MessageType.Warning); return false;}
+            //do checks for the message to prevent spam
+            //int spaces = message.Count(f => f == ' ');
+            //if(spaces < 3){ Console.BackgroundColor = ConsoleColor.DarkYellow; Console.WriteLine("TTS Failed: not enough spaces"); return data; }
+            string[] words = message.Split(' ');
+            int wordCount = words.Length;
+            if(wordCount == 1 && words[0].Length > 15){ Program.Log("TTS Failed: single long word", MessageType.Warning); return false; }
+            //if any of the words is longer than 20 characters fail
+            foreach(string word in words){ if(word.Length > 20){ Program.Log("TTS Failed: found word too long", MessageType.Warning); return false; } }
+            if(wordCount > 1){
+                //check the max number of duplicate words
+                int maxDuplicateWords = 0;
+                string maxDuplicateWord = "";
+                for(int i = 0; i < wordCount; i++){
+                    int duplicateWords = 0;
+                    for(int j = 0; j < wordCount; j++){ if(words[i] == words[j]){ duplicateWords++; } }
+                    if(duplicateWords > maxDuplicateWords){
+                        maxDuplicateWords = duplicateWords; maxDuplicateWord = words[i];
+                    }
+                }
+                //get the ratio of duplicate words to total words
+                float ratio = (float)maxDuplicateWords / (float)wordCount;
+                Program.Log($"Duplicates: {ratio * 100}%", MessageType.Debug);
+                if(ratio > 0.5f){ Program.Log("TTS Failed: too many duplicate words 0", MessageType.Warning); return false; }
+
+
+                //bool isJibberish = IsJibberish(message);
+                //if(isJibberish){ Program.Log("TTS Failed: jibberish", MessageType.Warning); return false; }
+            }
+
+            Program.Log("TTS Filter Passed", MessageType.Success);
+            return true;
+        }
+        bool IsJibberish(string text, float threshold = 0.5f)
+        {
+            // Remove punctuation and whitespace
+            var cleanedText = new string(text.Where(c => Char.IsLetter(c)).ToArray()).ToLower();
+
+            // Count character occurrences
+            var charCounts = cleanedText.GroupBy(c => c).ToDictionary(g => g.Key, g => g.Count());
+
+            // Calculate the ratio of unique characters to the total characters
+            float uniquenessRatio = charCounts.Count / cleanedText.Length;
+
+            // Check if the uniqueness ratio is below the threshold
+            Program.Log($"Uniqueness: {uniquenessRatio * 100}%", MessageType.Debug);
+            return uniquenessRatio < threshold;
         }
         public void ListVoices()
         {

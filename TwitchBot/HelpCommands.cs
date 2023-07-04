@@ -50,7 +50,7 @@ about bot<(Running BeanBot.exe {Program.version}) Beanbot's goal is to replace t
 about creator<BeanBot was made by twitch.tv/MasterAirscrach maybe drop a cheeky follow, get it yourself: (masterairscrachdev.itch.io/beanbot)
 about testers<Huge thanks to twitch.tv/5G_Greek, twitch.tv/xBlustone and twitch.tv/Elppa for letting me test this bot on their channels, and thanks to their viewers for helping me find all the bugs
 about inspiration<This bot was inspired by the cool commands of twitch.tv/DrTreggles and the amazing chat interaction of twitch.tv/DougDougW
-buytts<buy TTS Tokens to use for TTS, 5% discount per token | {Program.config.prefix}buyTTS (amount)
+buytts<buy TTS Tokens, {Program.config.ttsCost.ToString("N0")} {Program.config.currencies}, 5% discount per token | {Program.config.prefix}buyTTS (amount)
 tts<{tts}
 edittts<[MOD] Edit a users TTS Tokens | {Program.config.prefix}edittts (@user) (amount)
 stopsound<[MOD] Stops the tts and any other sounds the bot is playing | {Program.config.prefix}stopsound or {Program.config.prefix}ss
