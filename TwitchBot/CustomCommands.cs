@@ -7,10 +7,6 @@ using WindowsInput.Native;
 using WindowsInput;
 using System.Linq;
 using System.Windows.Forms;
-using System.Windows;
-using System.Runtime.InteropServices;
-using System.Threading;
-using System.Security.Cryptography;
 using NAudio;
 using System.Net;
 using NAudio.Wave;
@@ -28,24 +24,21 @@ namespace TwitchBot
         List<commandVar> globalVars = new List<commandVar>();
         List<int> commandIds = new List<int>();
         public CustomCommands()
-        {
-            ReloadCommands();
-        }
+        { ReloadCommands(); }
         public async Task ReloadCommands(string addpath = "")
         {
-            //Console.WriteLine($"Getting Commands in customCommands\\{addpath}");
             string[] files = SaveSystem.GetAllFilesInFolder($"customCommands\\{addpath}");
             if(addpath == ""){ customCommands.Clear(); }
             if(files == null){ Program.Log($"No Custom Command Found in customCommands\\{addpath}"); return; }
             commandIds.Clear();
-            //clear all global vars that are not Prefixe with Inv
+            //clear all global vars that are not Prefixed with Inv
             for(int i = 0; i < globalVars.Count; i++)
             {
                 if(!globalVars[i].name.StartsWith("Inv")){
-                    globalVars.RemoveAt(i);
-                    i--;
+                    globalVars.RemoveAt(i); i--;
                 }
             }
+            //save all global vars to a temp array while we reload
             commandVar[] tempVars = new commandVar[globalVars.Count];
             globalVars.CopyTo(tempVars);
             globalVars.Clear();
@@ -56,13 +49,13 @@ namespace TwitchBot
                 //if it starts with ! then skip it
                 if(name.StartsWith("!")){ continue; }
                 //remove the .txt
-                name = name.Remove(name.Length - 4);
-                name = name.ToLower();
+                name = name.Remove(name.Length - 4).ToLower();
                 //get the custom command data
                 CustomCommandData data = await GetCommand(name, addpath);
                 if(data != null){
                     //error check the file
                     string[] lines = SaveSystem.GetPlaintextFile($"customCommands\\{addpath}{name}.txt");
+                    //create a temp process data to run the lines
                     ProcessData tempData = new ProcessData();
                     tempData.user = new User("default", 1);
                     tempData.message = new Message();
@@ -75,21 +68,18 @@ namespace TwitchBot
                         //add the command to the list
                         customCommands.Add(data);
                         Program.Log($"Command {addpath}{data.name} Loaded", MessageType.Success);
+                        //run the command if it is an auto command
+                        if(data.auto){ RunAutoCommand(data); }
                     }
                     else{
                         Program.Log($"Command {addpath}{data.name} Has An Error on line: {line.line}, Error: {line.errorCode}", MessageType.Error);
                     }
-                    if(data.auto){
-                        RunAutoCommand(data);
-                    }
                 }
-                else{
-                    Program.Log($"Command {addpath}{name} Has An Error", MessageType.Error);
-                }
-                globalVars.Clear();
-                globalVars.AddRange(tempVars);
+                else{ Program.Log($"Command {addpath}{name} Has An Error", MessageType.Error); }
+                //add all the global vars back
+                globalVars.Clear(); globalVars.AddRange(tempVars);
             }
-            //get all the folders
+            //get all the folders and recurse
             string[] folders = SaveSystem.GetAllSubFolders($"customCommands\\{addpath}");
             if(folders == null){ return; }
             for(int i = 0; i < folders.Length; i++)
@@ -101,9 +91,9 @@ namespace TwitchBot
             }
         }
         async Task RunAutoCommand(CustomCommandData data){
-            //wait 5 seconds
+            //wait 5 seconds as a safety measure
             await Task.Delay(5000);
-            //run the command
+            //create a temp processData to run the lines
             ProcessData Pdata = new ProcessData();
             Pdata.user = new User("default", 1);
             Pdata.message = new Message();
@@ -116,18 +106,15 @@ namespace TwitchBot
         }
         async Task<CustomCommandData> GetCommand(string name, string addpath)
         {
-            ///get the data in the () if any
-            //chck the description
-            //then return stuff
+            //get the data in the () if any and check the description
+
             //load the file
-            if(name.Contains("!")){ return null;}
+            if(name.Contains("!")){ return null;} //should never happen
             CustomCommandData data = new CustomCommandData(name, "");
             data.fullName = name;
             data.addPath = addpath;
-            //check if the the name has 
             //check if the name has () and if it does get the text inside
-            if (name.Contains("("))
-            {
+            if (name.Contains("(")){
                 if(name.Contains(")")){
                     //get the text inside the ()
                     string[] split = name.Split('(');
@@ -136,19 +123,11 @@ namespace TwitchBot
                     data.name = split[0];
                     //split the text inside the () by ,
                     string[] subData;
-                    if(split[1].Contains(",")){
-                        subData = split[1].Split(',');
-                    }
-                    else{
-                        subData = new string[]{split[1]};
-                    }
-                    //sub types: cost=x,mod, onbits<x |=x
-                    for(int i = 0; i < subData.Length; i++)
-                    {
-                        //Console.WriteLine(subData[i]);
-                        if(subData[i].StartsWith("cost=")){
-                            try{ data.cost = int.Parse(subData[i].Remove(0, 5)); } catch{ return null; }
-                        }
+                    if(split[1].Contains(",")){ subData = split[1].Split(','); }
+                    else{ subData = new string[]{split[1]}; }
+                    for(int i = 0; i < subData.Length; i++) {
+                        if(subData[i].StartsWith("cost="))
+                        { try{ data.cost = int.Parse(subData[i].Remove(0, 5)); } catch{ return null; } }
                         else if(subData[i].StartsWith("mod")){ data.modOnly = true; }
                         else if(subData[i].StartsWith("onBits="))
                         { try { data.bitsCost = int.Parse(subData[i].Remove(0, 7)); } catch { return null; } }
@@ -158,16 +137,14 @@ namespace TwitchBot
                         else if(subData[i].StartsWith("globalCooldown")){data.globalCooldown = true;}
                         else if(subData[i].StartsWith("streamer")){data.streamerOnly = true;}
                         else if(subData[i].StartsWith("perams")){data.perams = true;}
-                        else{ return null; }
+                        else if(subData[i].StartsWith("noWhisper")){data.whisperType = 0;}
+                        else if(subData[i].StartsWith("onlyWhisper")){data.whisperType = 2;}
+                        else{ Program.Log($"commandData: {subData[i]} is not valid, ignoring", MessageType.Error); }
                     }
                 }
-                else
-                { return null; }
-                
+                else { return null; }
             }
-            else {
-                data.name = name;
-            }
+            else { data.name = name; }
             string[] lines = SaveSystem.GetPlaintextFile($"customCommands\\{addpath}{name}.txt");
             if(lines != null){
                 //make sure theres at least 2 lines
@@ -204,14 +181,13 @@ namespace TwitchBot
         public async Task BitsCommand(ProcessData messageData, int bits)
         {
             //run any commands that are on bits
-            for (int i = 0; i < customCommands.Count; i++)
-            { 
+            for (int i = 0; i < customCommands.Count; i++) { 
                 if (customCommands[i].bitsCost > 0 && customCommands[i].bitsCost <= bits) { 
                     RunCommand(customCommands[i], messageData);
                 }
             }
         }
-        public void ReadTextFileFromUrl(string url)
+        public void ReadTextFileFromUrl(string url) //CURL
         {
             List<string> lines = new List<string>();
 
@@ -227,7 +203,6 @@ namespace TwitchBot
                         new[] { "\r\n", "\r", "\n" },
                         StringSplitOptions.RemoveEmptyEntries
                     );
-
                     lines.AddRange(fileLines);
                 }
                 catch (Exception ex)
@@ -251,14 +226,15 @@ namespace TwitchBot
         /// Keydown, Keyup, Keypress, Wait, Message, Log, Click, Playsound, ModPoints, If, Else, SetVar
 
         async Task<LineReturn> RunLines(string[] lines, ProcessData data, int id, bool check = false, LineReturn lr = null, commandVar[] OldVars = null){
-            if(!commandIds.Contains(id)){return lr;}
-            //try to split
+            if(!commandIds.Contains(id) && id != -1){ return lr;}
             int maxlines = lines.Length;
             int i = 0;
-            if(lr == null){ lr = new LineReturn(); lr.line = 2; i = 1; }
+            if (lr == null)
+            { lr = new LineReturn(); lr.line = 2; i = 1; lr.vars = new commandVar[0]; }
             List<commandVar> vars = new List<commandVar>();
-            if(OldVars != null){ vars.AddRange(OldVars); }
-            while(i < maxlines){
+            if(OldVars != null){ vars.AddRange(OldVars); OldVars = null; }
+            //Program.Log(vars.ToString(), MessageType.Debug);
+            while (i < maxlines){
                 try{
                     if(string.IsNullOrEmpty(lines[i])){ i++; continue;}
                     string[] split = lines[i].Split('<');
@@ -271,18 +247,23 @@ namespace TwitchBot
                     if(split.Length > 2){for(int j = 2; j < split.Length; j++){ args += split[j]; }} //combine the rest of the line into the args
                     
                     args = parseString(args, data); //add special data to args
+                    //Program.Log($"Args: {args}", MessageType.Debug);
                     args = GetVars(vars.ToArray(), args); //add vars to args
+                    //Program.Log($"Args: {args}", MessageType.Debug);
                     args = parseMaths(args); //calculate any maths in args
                     //Console.BackgroundColor = ConsoleColor.DarkYellow;
-                    //Console.WriteLine($"SetLine: {i} GlobalLine {lr.line} Func: {func} Args: {args}");
+                    //Program.Log($"Line: {i} GlobalLine {lr.line} Func: {func} Args: {args}", MessageType.Debug);
                     //check if the line has a keyword
                     if (func == "Wait") { int time = int.Parse(args); if(!check){ await Task.Delay(time); if(!commandIds.Contains(id) && id != -1){lr.canceled = true; return lr;} } }
                     else if (func == "Keydown") { VirtualKeyCode v = GetKey(args);  if(v == VirtualKeyCode.NONAME){ lr.error = true; lr.errorCode = "Unknown Key"; return lr;} else if(!check){ input.Keyboard.KeyDown(v); } }
                     else if (func == "Keyup") { VirtualKeyCode v = GetKey(args);  if(v == VirtualKeyCode.NONAME){ lr.error = true; lr.errorCode = "Unknown Key"; return lr;} else if(!check){ input.Keyboard.KeyUp(v); } }
                     else if (func == "Keypress") { VirtualKeyCode v = GetKey(args);  if(v == VirtualKeyCode.NONAME){ lr.error = true; lr.errorCode = "Unknown Key"; return lr;} else if(!check){ input.Keyboard.KeyPress(v); } }
                     else if (func == "Click") { if(!MouseClick(args, true)) {lr.error = true; lr.errorCode = "Unknown Mouse Button"; return lr;} else if(!check){ MouseClick(args); } }
-                    else if (func == "Message") { if(!check){await Program.SendMessage(args); } }
+                    else if (func == "Chat") { if(!check){await Program.SendMessage(args); } }
+                    else if (func == "Whisper") { if(!check && data.message.isWhisper){await Program.SendMessage(args, data.user.name); } }
+                    else if (func == "Reply") { if(!check){if(data.message.isWhisper){ await Program.SendMessage(args, data.user.name);}else{await Program.SendMessage($"@{data.user.name} {args}");}}}
                     else if (func == "Log") { if(!check){ Program.Log($"SCRIPT LOG: {args}", MessageType.Debug); } }
+                    else if (func == "fLog") { Program.Log($"SCRIPT fLOG: {args}", MessageType.Debug); }
                     else if (func == "Setvar") { commandVar var = SetVarFromString(args); if(var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr;}else{ vars = MergeVars(var, vars); } }
                     else if (func == "Setglobalvar") { commandVar var = SetGlobalVarFromString(args); if(var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr;}else{ vars = MergeVars(var, vars); } }
                     else if (func == "Getglobalvar") { commandVar var = GetGlobalVar(args); vars = MergeVars(var, vars); }
@@ -298,6 +279,7 @@ namespace TwitchBot
                     else if (func == "Modtts"){ try{ int mod = int.Parse(args); if(!check){SaveUserWithChange(data.user.name, 0,0,mod);} } catch{ lr.error = true; lr.errorCode = $"ttsChange Failed to Parse: '{args}'"; return lr; } }
                     else if (func == "Modgold"){ try{ int mod = int.Parse(args); if(!check){SaveUserWithChange(data.user.name, 0, mod);} } catch{ lr.error = true; lr.errorCode = $"goldChange Failed to Parse: '{args}'"; return lr; } }
                     else if (func == "Immortalize") { id = -1;}
+                    else if (func == "AddGlobalMulti") { try{split = args.Split(','); float multi = float.Parse(split[0]); int duration = int.Parse(split[1]); if(!check){Program.TempMulti(multi,duration);}}catch{ lr.error = true; lr.errorCode = $"AddGlobalMulti Failed to Parse: '{args}'"; return lr;}}
                     else if (func == "#"){}
                     else if (func == "Loop"){
                         //get the number of loops
@@ -432,6 +414,7 @@ namespace TwitchBot
                             //also check num == num, num < num, num > num
                         }
                         catch{
+                            Program.Log(vars.ToString(), MessageType.Debug);
                             lr.error = true; lr.errorCode = "If Statement Exeption"; return lr;
                         }
                         
@@ -457,8 +440,6 @@ namespace TwitchBot
                                     if(o >= checkO){ whileLines.Add(lines[j]); }
                                     else if(o < checkO){ break; }
                                 }
-                                //run the lines
-                                lr.line++;
                                 //make sure there is at least one Wait< in the while loop
                                 bool hasWait = false;
                                 //Console.WriteLine("Check While Loop for Wait");
@@ -467,37 +448,44 @@ namespace TwitchBot
                                     if(whileLines[j].Contains("Wait<")){ hasWait = true; break; }
                                 }
                                 if(!hasWait){Program.Log("Wait not Found", MessageType.Error);  lr.error = true; lr.line -= whileLines.Count; lr.errorCode = "While Loop has no Wait"; return lr; }
-                            }
-                            while(b){          
-                                LineReturn l = await RunLines(whileLines.ToArray(), data, id, check, lr, vars.ToArray());
-                                //log all the vars
-                                for(int j = 0; j < l.vars.Length; j++){ vars = MergeVars(l.vars[j], vars); }
-                                
-                                lr.line = l.line;
-                                if(l.error){ lr.error = true;lr.errorCode = l.errorCode; return lr; }
-                                else if (l.canceled){ lr.canceled = true; return lr; }
-                                //check the value again
-                                args = GetCurrentArgs(lines[i], data, vars.ToArray());
-                                //Console.WriteLine($"Updated Args: {args}");
-                                if(CompareValues(args) == null){ lr.error = true; lr.errorCode = "While Statement Execution Error"; return lr;}
-                                b = (bool)CompareValues(args);
-                                //if we are still in the while loop, reset the line
+                                //run the lines
+                                lr.line++;
+                                while(b){
+                                    LineReturn lineOut = await RunLines(whileLines.ToArray(), data, id, check, lr, vars.ToArray());
+                                    //log all the vars
+                                    for(int j = 0; j < lineOut.vars.Length; j++){ vars = MergeVars(lineOut.vars[j], vars); }
+                                    
+                                    lr.line = lineOut.line;
+                                    if(lineOut.error){ lr.error = true;lr.errorCode = lineOut.errorCode; return lr; }
+                                    else if (lineOut.canceled){ lr.canceled = true; return lr; }
+                                    //check the value again
+                                    args = GetCurrentArgs(lines[i], data, vars.ToArray());
+                                    //Console.WriteLine($"Updated Args: {args}");
+                                    if(CompareValues(args) == null){ lr.error = true; lr.errorCode = "While Statement Execution Error"; return lr;}
+                                    //Program.Log(args, MessageType.Debug);
+                                    b = (bool)CompareValues(args);
+                                    //if we are still in the while loop, reset the line
+                                    //Program.Log($"While Loop: {b}", MessageType.Debug);
+                                    //await Task.Delay(10000);
+                                }
                             }
                             i += whileLines.Count;
-                            
-                            //also check num == num, num < num, num > num
                         }
                         catch(Exception e){
                             lr.error = true; lr.errorCode = $"While Statement Exeption: {e}"; return lr;
                         }
                     }
-                    else { lr.error = true; lr.errorCode = "Unknown Function (did you spell it correctly?)"; return lr; }
+                    else { lr.error = true; lr.errorCode = "Unknown Function"; 
+                        if(func == "Message"){ lr.errorCode = "Message is Depricated, use 'Reply'"; }
+                        return lr; 
+                    }
                 }
                 catch{ lr.error = true; lr.errorCode = "ParseError"; return lr; }
                 i++;
                 lr.line++;
             }
             lr.vars = vars.ToArray();
+            //Console.WriteLine($"are lr.vars null? {lr.vars == null}");
             return lr;
         }
         async Task SaveUserWithChange(string user, int pChange, int gpChange = 0, int ttsChange = 0, bool withMulti = false){
@@ -549,7 +537,7 @@ namespace TwitchBot
             if ((data.cost <= messageData.user.points) && (data.modOnly == false || messageData.message.usermod == true) && (data.streamerOnly == false || messageData.message.sender.ToLower() == Program.config.channel))
             {
                 while(Program.commandManager == null){ await Task.Delay(100); }
-                if(Program.commandManager.CheckMessage(messageData.message, data.name, data.cooldownSeconds, data.globalCooldown)){
+                if(Program.commandManager.CheckMessage(messageData.message, data.name, data.cooldownSeconds, data.globalCooldown, 1)){
                     //remove the {config.currencies} from the user
                     messageData.user.points -= data.cost;
                     await SaveSystem.SaveUser(messageData.user);
@@ -575,8 +563,11 @@ namespace TwitchBot
             if(split.Length > 2){for(int j = 2; j < split.Length; j++){ args += split[j]; }} //combine the rest of the line into the args
             
             args = parseString(args, data); //add special data to args
+            //Program.Log($"Args: {args}", MessageType.Debug);
             args = GetVars(vars.ToArray(), args); //add vars to args
+            //Program.Log($"Args: {args}", MessageType.Debug);
             args = parseMaths(args); //calculate any maths in args
+            //Program.Log($"Args: {args}", MessageType.Debug);
             return args;
         }
         bool? CompareValues(string args){
@@ -584,6 +575,7 @@ namespace TwitchBot
                 string[] argsSplit = args.Split('=');
                 if(argsSplit.Length != 2){return null;}
                 if(argsSplit[0] == "focus"){ return ExeFocusChecker.IsExeFocused(argsSplit[1]);}
+                else if(argsSplit[0] == "day"){ return IsDay(argsSplit[1]); }
                 else { return argsSplit[0] == argsSplit[1]; }
             }
             else if(args.Contains('<')){
@@ -603,6 +595,19 @@ namespace TwitchBot
                 else { return argsSplit[0] != argsSplit[1]; }
             }
             else { return null; }
+        }
+
+        bool IsDay(string day){
+            switch(day.ToLower()){
+                case "monday": return DateTime.Now.DayOfWeek == DayOfWeek.Monday;
+                case "tuesday": return DateTime.Now.DayOfWeek == DayOfWeek.Tuesday;
+                case "wednesday": return DateTime.Now.DayOfWeek == DayOfWeek.Wednesday;
+                case "thursday": return DateTime.Now.DayOfWeek == DayOfWeek.Thursday;
+                case "friday": return DateTime.Now.DayOfWeek == DayOfWeek.Friday;
+                case "saturday": return DateTime.Now.DayOfWeek == DayOfWeek.Saturday;
+                case "sunday": return DateTime.Now.DayOfWeek == DayOfWeek.Sunday;
+                default: return false;
+            }
         }
         
         string GetVars(commandVar[] vars, string input)
@@ -965,7 +970,7 @@ namespace TwitchBot
 class CustomCommandData
 {
     public string name, fullName, description, addPath;
-    public int cost, bitsCost, cooldownSeconds;
+    public int cost, bitsCost, cooldownSeconds, whisperType;
     public bool modOnly, auto, streamerOnly, globalCooldown, perams;
     public CustomCommandData(string name, string description, int cost = 0)
     {
@@ -979,6 +984,7 @@ class CustomCommandData
         this.auto = false;
         this.cooldownSeconds = 0;
         this.perams = false;
+        this.whisperType = 1;
         addPath = "";
     }
 }

@@ -15,7 +15,6 @@ namespace TwitchBot
         List<UserWithTimer> activeChat = new List<UserWithTimer>();
         List<CommandCooldown> commandCooldowns = new List<CommandCooldown>();
         string CouterName = "Counter";
-        //create an araay that will hold the names of bots to ignore
         string[] botsToIgnore = new string[0];
         //Bot bot;
         public CommandManager()

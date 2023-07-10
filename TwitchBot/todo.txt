@@ -1,11 +1,7 @@
-persistent variables
-
-fix temp multis
-
-update the bot and public the repo
-
-global vars broken (maybe fixed)
+persistent variables (between restarts)
 
 follow detection
 
-fix channel title updates
+fix channel title update
+
+surl file

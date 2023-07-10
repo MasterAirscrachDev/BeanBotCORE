@@ -48,6 +48,10 @@ namespace TwitchBot
                     //delete update file
                     SaveSystem.DeleteFile("UPDATE");
                 }
+                Program.Log("", MessageType.Success);
+                Program.Log($"You are on Latest version {Program.version}", MessageType.Success);
+                Program.Log("Thank you for using beanbot :)", MessageType.Success);
+                Program.Log("", MessageType.Success);
             }
             return token;
         }

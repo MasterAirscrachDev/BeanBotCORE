@@ -129,7 +129,6 @@ namespace TwitchBot
             string lVersion = Program.version.Replace("v", "").Replace(".", "");
             if(int.Parse(version) > int.Parse(lVersion)){
                 //if the server version is greater than the local version, update
-                Console.BackgroundColor = ConsoleColor.DarkYellow;
                 Program.Log($"Server version ({svVersion}) is greater than local version ({Program.version}), updating", MessageType.Warning);
                 //download the new version
                 //go up a directory an check if there is an exe called BeanBotInstaller.exe
@@ -168,7 +167,10 @@ namespace TwitchBot
                 }
             }
             else{
-                Program.Log("Dev version Detected, not updating", MessageType.Success);
+                Program.Log("", MessageType.Success);
+                Program.Log($"You are using Dev version {Program.version}", MessageType.Success);
+                Program.Log("", MessageType.Success);
+
             }
 
             

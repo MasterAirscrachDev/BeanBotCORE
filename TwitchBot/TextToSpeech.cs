@@ -66,6 +66,8 @@ namespace TwitchBot
                 }
                 cost -= discount;
                 //check if the user has enough tokens
+                //if cost is negative then auto return
+                if(cost < 0){ data.returnMessage = $"@{data.message.sender} Naughty Naughty"; return data; }
                 if(data.user.points < cost){
                     data.returnMessage = $"@{data.message.sender} You do not have enough {Program.config.currencies} to buy {tokens} TTS Tokens (You Need: {cost})";
                     return data;

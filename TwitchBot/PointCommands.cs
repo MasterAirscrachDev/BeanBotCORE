@@ -21,21 +21,17 @@ namespace TwitchBot
                 //split the string into an array
                 string[] messageArray = data.message.content.Split(' ');
                 //get the user and the amount of {Program.config.currencies}
-                string userToGive = messageArray[1];
+                string userToGive = messageArray[1].Replace("@", "");
                 if (messageArray.Length > 1)
                 {
                     int amount = CommandManager.PointsFromString(messageArray[2], data.user);
                     //check if the user has enough {Program.config.currencies}
                     if (CommandManager.CanAfford(messageArray[2], data.user))
                     {
-                        userToGive = userToGive.Replace("@", "");
                         User userToGiveTo = await SaveSystem.GetUser(userToGive);
-                        if (userToGiveTo.name == data.user.name|| userToGiveTo.name == "AwesomeBean_BOT")
-                        {
-                            {
-                                data.returnMessage = $"@{data.message.sender} you can't give {Program.config.currencies} to yourself";
-                                return data;
-                            }
+                        if (userToGiveTo.name == data.user.name|| userToGiveTo.name == "AwesomeBean_BOT") {
+                            data.returnMessage = $"@{data.message.sender} you can't give {Program.config.currencies} to yourself";
+                            return data;
                         }
                         //remove the {Program.config.currencies} from the user
                         data.user.points -= amount;
@@ -220,6 +216,7 @@ namespace TwitchBot
                 string[] args = data.message.content.Split(' ');
                 int pointCap = int.Parse(args[1]);
                 int goldCap = int.Parse(args[2]);
+                int ttsCap = int.Parse(args[3]);
                 User[] users = await SaveSystem.GetAllUsers();
                 bool e = false;
                 for (int i = 0; i < users.Length; i++)
@@ -238,7 +235,7 @@ namespace TwitchBot
                 return data;
             }
             catch{
-                data.returnMessage = $"@{data.message.sender} invalid syntax, please use the format: {Program.config.prefix}ResetEconomy ({Program.config.currencies}Max) (gold{Program.config.currencies}max)";
+                data.returnMessage = $"@{data.message.sender} invalid syntax, please use the format: {Program.config.prefix}bot.ResetEconomy ({Program.config.currencies}Max) (gold{Program.config.currencies}max) (ttsTokensmax)";
                 return data;
             }
             
