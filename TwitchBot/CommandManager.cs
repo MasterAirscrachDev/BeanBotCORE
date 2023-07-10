@@ -433,9 +433,7 @@ namespace TwitchBot
             //string[] substrings = message.Content.Split(' ');
             if (message.content.ToLower().StartsWith(command.ToLower())) {
                 //0 = no whisper, 1 = whisper, 2 = only whisper
-                if (allowWhisper == 1 && message.isWhisper) { return true; }
-                else if (allowWhisper == 2 && !message.isWhisper) { return false; }
-                else if (allowWhisper == 0 && message.isWhisper) { return false; }
+                
                 if (cooldown > 0) {
                     for(int i = 0; i < commandCooldowns.Count; i++) {
                         if ((commandCooldowns[i].username == message.sender && commandCooldowns[i].command == command) || (commandCooldowns[i].username == "@" && commandCooldowns[i].command == command))
@@ -445,14 +443,17 @@ namespace TwitchBot
                             string timeLeft = string.Format("{0:D2}:{1:D2}", t.Minutes, t.Seconds);
                             string reply = global ? $"@{message.sender} this command is being used to much. wait {timeLeft}" : $"@{message.sender} your using this command to much. wait {timeLeft}";
 
-                            Program.SendMessage(reply);
+                            Program.SendMessage(reply, message.isWhisper ? message.sender : null);
                             return false;
                         }
                     }
                     string send = global ? "@" : message.sender;
                     commandCooldowns.Add(new CommandCooldown(command, send, cooldown));
                 }
-                return true;
+                if (allowWhisper == 1 && message.isWhisper) { return true; }
+                else if (allowWhisper == 2 && !message.isWhisper) { return false; }
+                else if (allowWhisper == 0 && message.isWhisper) { return false; }
+                else { return true; }//should never get here
             }
             else { return false; }
         }

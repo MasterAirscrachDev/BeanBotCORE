@@ -219,6 +219,7 @@ namespace TwitchBot
                 int ttsCap = int.Parse(args[3]);
                 User[] users = await SaveSystem.GetAllUsers();
                 bool e = false;
+                int updated = 0;
                 for (int i = 0; i < users.Length; i++)
                 {
                     e = false;
@@ -228,9 +229,12 @@ namespace TwitchBot
                     if(users[i].goldPoints > goldCap){
                         users[i].goldPoints = goldCap; e = true;
                     }
-                    if(e){ SaveSystem.SaveUser(users[i]); }
+                    if(users[i].ttsTokens > ttsCap){
+                        users[i].ttsTokens = ttsCap; e = true;
+                    }
+                    if(e){ await SaveSystem.SaveUser(users[i]); updated++; }
                 }
-                data.returnMessage = $"@{data.message.sender} economy reset!";
+                data.returnMessage = $"@{data.message.sender} economy reset! updated {updated} users.";
                 resetAsked = false;
                 return data;
             }
