@@ -453,7 +453,7 @@ namespace TwitchBot
                 if (allowWhisper == 1 && message.isWhisper) { return true; }
                 else if (allowWhisper == 2 && !message.isWhisper) { return false; }
                 else if (allowWhisper == 0 && message.isWhisper) { return false; }
-                else { return true; }//should never get here
+                return true;//should never get here
             }
             else { return false; }
         }

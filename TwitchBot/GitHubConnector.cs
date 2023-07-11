@@ -59,7 +59,7 @@ namespace TwitchBot
             string owner = "MasterAirscrachDev";
             string repo = "BeanBotFullCommands";
             string filePath = $"{Program.config.channel} Commands.md";
-            string title = $"{Program.config.channel} Commands (Last Updated {DateTime.Now})";
+            string title = $"{Program.config.channel} Commands";
 
             string content = $"# {title}\n{fullhelp}";
             string commitMessage = $"Adding file at {DateTime.Now}";

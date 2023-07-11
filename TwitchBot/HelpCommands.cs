@@ -109,9 +109,34 @@ active<[WHISPER] All the chats your detected in | ACTIVE";
             string help2 = $@"{tts} <br>
 {floor} <br>
 {Program.config.prefix}Openminigames costs {Program.config.minigamesCost} {Program.config.currencies} and lasts {Program.config.minigamesDuration} minutes <br>
-### Custom Commands <br>
-```js
-{customHelp}";
+## Custom Commands <br>";
+            CustomCommandData[] commands = Program.customCommands.GetCustomCommands();
+            string lastpath = "asdsad";
+            bool first = true;
+            //log all custom commands paths
+            for (int i = 0; i < commands.Length; i++)
+            {
+                if(commands[i].addPath != lastpath)
+                {
+                    if(!first) { help2 += "```"; }
+                    first = false;
+                    lastpath = commands[i].addPath;
+                    if(!string.IsNullOrWhiteSpace(commands[i].addPath)){
+                        string path = commands[i].addPath;
+                        //if the path ends with a \ remove it
+                        //Program.Log($"Path: `{path}`", MessageType.Debug);
+                        if(path[path.Length - 1] == '\\') { path = path.Remove(path.Length - 1); }
+                        help2 += $"\n### {path} <br>\n```js\n";
+                    }
+                    else{
+                        help2 += $"\n```js\n";
+                    }
+                }
+                help2 += $"{Program.config.prefix}{commands[i].name} - {commands[i].description}";
+                if(commands[i].cost > 0) { help2 += $" | {commands[i].cost} {Program.config.currencies}"; }
+                help2 += "\n";
+                //Program.Log($"{commands[i].addPath} {Program.config.prefix}{commands[i].name}   {commands[i].description}", MessageType.Debug);
+            }
             try{
                 Program.twitchLibInterface.bot.UpdateGitHubCommandList(help2);
             }

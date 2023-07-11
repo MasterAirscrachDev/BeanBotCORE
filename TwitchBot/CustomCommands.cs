@@ -537,7 +537,7 @@ namespace TwitchBot
             if ((data.cost <= messageData.user.points) && (data.modOnly == false || messageData.message.usermod == true) && (data.streamerOnly == false || messageData.message.sender.ToLower() == Program.config.channel))
             {
                 while(Program.commandManager == null){ await Task.Delay(100); }
-                if(Program.commandManager.CheckMessage(messageData.message, data.name, data.cooldownSeconds, data.globalCooldown, 1)){
+                if(Program.commandManager.CheckMessage(messageData.message, data.name, data.cooldownSeconds, data.globalCooldown, data.whisperType)){
                     //remove the {config.currencies} from the user
                     messageData.user.points -= data.cost;
                     await SaveSystem.SaveUser(messageData.user);
@@ -964,6 +964,10 @@ namespace TwitchBot
                 help += "\n";
             }
             return help;
+        }
+        public CustomCommandData[] GetCustomCommands(){
+            //get the custom commands
+            return customCommands.ToArray();
         }
     }
 }
