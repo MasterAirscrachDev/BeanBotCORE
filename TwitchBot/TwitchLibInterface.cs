@@ -38,7 +38,7 @@ namespace TwitchBot
         TwitchAPI api;
         bool ActiveBotAccessToken = false, hasMod = false, doChecks = false, chatConnected = false;
         string broadcasterID = null, botID, UserAccessToken = null, refresh = null;
-        List<string> chatters = new List<string>();
+        List<string> chatters = new List<string>(), bannedUsers = new List<string>();
         TwitchApiInterface apiInterface;
         List<AuthScopes> mainScopes = new List<AuthScopes> { AuthScopes.Helix_moderator_Manage_Chat_Messages, AuthScopes.Helix_Moderation_Read, AuthScopes.Helix_User_Read_Email, AuthScopes.Helix_Moderator_Read_Followers, AuthScopes.Helix_User_Manage_Whispers },
         streamerScopes = new List<AuthScopes> {AuthScopes.Helix_Moderation_Read, AuthScopes.Helix_Channel_Read_Subscriptions, AuthScopes.Helix_Channel_Manage_Broadcast};
@@ -80,6 +80,7 @@ namespace TwitchBot
             Program.Log("Getting Bot Token");
             await RefreshBotToken();
             MinTicker();
+            UpdateBannedUsers();
         }
         public void AuthConfirmed(){
             doChecks = true;
@@ -337,6 +338,7 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
                 //get the index of the first space
                 message.content = e.WhisperMessage.Message;
                 message.sender = e.WhisperMessage.DisplayName;
+                if(IsUserBlocked(message.sender)){ return;}
                 message.channel = Program.config.channel;
                 message.isWhisper = true;
                 Console.WriteLine($"Whisper: {message.content} from {message.sender}");
@@ -360,6 +362,31 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
             catch(Exception e){
                 Program.Log($"Error sending whisper to {username}: {e.Message}", MessageType.Error);
                 return false;
+            }
+        }
+        //check if the user is banned or timeouted on the channel
+        bool IsUserBlocked(string username)
+        {
+            if(bannedUsers.Any(x => x == username)){ return true; }
+            return false;
+        }
+        async Task UpdateBannedUsers(){
+            while(true){
+                
+                bannedUsers.Clear();
+                try{
+                    var banned = await api.Helix.Moderation.GetBannedUsersAsync(broadcasterID, first:100, accessToken:UserAccessToken);
+                    foreach(var user in banned.Data){
+                        //Program.Log($"Adding {user.UserName} to banned users");
+                        bannedUsers.Add(user.UserName);
+                    }
+                }
+                catch(Exception e){
+                    Program.Log($"Error updating banned users: {e.Message}", MessageType.Error);
+                }
+                
+                //var timeouted = await api.Helix.Moderation.Get
+                await Task.Delay(60000);
             }
         }
 

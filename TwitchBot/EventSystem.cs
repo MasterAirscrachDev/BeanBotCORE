@@ -46,7 +46,9 @@ namespace TwitchBot
                 else{
                     goldDrop = false;
                     string multi = Program.config.pointsFromDrop > 1 ? $" {dropsLeft} " : $" ";
-                    mesage = $"A Wild Drop Has Apeared! First{multi}to use !Drop will get {Program.GetGlobalMultipliedPoints(Program.config.pointsFromDrop)} {Program.config.currencies}!";
+                    string L = new Random().Next(0, 2) == 0 ? "𝗅" : "l";
+                    string I = new Random().Next(0, 2) == 0 ? "і" : "i";
+                    mesage = $"A W{I}{L}d Drop Has Apeared! First{multi}to use !Drop will get {Program.GetGlobalMultipliedPoints(Program.config.pointsFromDrop)} {Program.config.currencies}!";
                 }
                 await Program.SendMessage(mesage);
             }
