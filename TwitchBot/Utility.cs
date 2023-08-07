@@ -96,7 +96,7 @@ namespace TwitchBot
                         Program.Log("SURL Unsupported audio format", MessageType.Error);
                         return;
                     }
-
+                    
                     // Adjust the volume
                     var volumeProvider = new VolumeWaveProvider16(waveStream);
                     volumeProvider.Volume = volume;

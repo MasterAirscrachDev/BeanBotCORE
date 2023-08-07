@@ -372,22 +372,27 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
         }
         async Task UpdateBannedUsers(){
             while(true){
-                
-                bannedUsers.Clear();
+                GetBannedUsers();              
+                //var timeouted = await api.Helix.Moderation.Get
+                await Task.Delay(60000);
+            }
+        }
+        public async Task GetBannedUsers(){
+            bannedUsers.Clear();
                 try{
+                    int bannedC = 0;
                     var banned = await api.Helix.Moderation.GetBannedUsersAsync(broadcasterID, first:100, accessToken:UserAccessToken);
                     foreach(var user in banned.Data){
                         //Program.Log($"Adding {user.UserName} to banned users");
                         bannedUsers.Add(user.UserName);
+                        bannedC++;
                     }
+                    Program.Log($"Added {bannedC} users to banned users");
                 }
                 catch(Exception e){
                     Program.Log($"Error updating banned users: {e.Message}", MessageType.Error);
+                    await GetSavedToken();
                 }
-                
-                //var timeouted = await api.Helix.Moderation.Get
-                await Task.Delay(60000);
-            }
         }
 
         private void Client_OnNewSubscriber(object sender, OnNewSubscriberArgs e) { 

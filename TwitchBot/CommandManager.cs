@@ -217,6 +217,7 @@ namespace TwitchBot
                 Program.RefreshConfig();
                 await Program.SendMessage($"@{message.sender} config and commands reloaded", data.message.isWhisper ? data.message.sender : null); 
                 GetBlacklist();
+                Program.twitchLibInterface.bot.GetBannedUsers();
                 Program.helpSystem.ReloadHelp(); return;
             }
             //UTILITY COMMANDS =====================================================================
