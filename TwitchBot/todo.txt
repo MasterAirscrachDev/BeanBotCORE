@@ -1,7 +1,12 @@
 persistent variables (between restarts)
 
-follow detection
-
 fix channel title update
 
 surl file
+
+.ogg support
+
+WORKING ONCE PUBSUB IS FIXED
+channel points support
+follow detection
+bits detection

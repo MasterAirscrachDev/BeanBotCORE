@@ -1,5 +1,6 @@
 using System;
 using NAudio.Wave;
+using NAudio.Vorbis;
 using System.Net;
 using System.Media;
 using System.Threading.Tasks;
@@ -84,19 +85,24 @@ namespace TwitchBot
                 {
                     // Download the audio file from the web URL
                     byte[] audioData = webClient.DownloadData(url);
-
                     // Create a WaveStream from the downloaded audio data
                     WaveStream waveStream;
                     if (url.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))
                         waveStream = new WaveFileReader(new System.IO.MemoryStream(audioData));
                     else if (url.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase))
                         waveStream = new Mp3FileReader(new System.IO.MemoryStream(audioData));
+                    else if (url.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase))
+                        //SUPPORT FOR OGG
+                        using (var vorbisStream = new VorbisWaveReader(new System.IO.MemoryStream(audioData)))
+                        {
+                            // Convert Vorbis-compressed audio to PCM
+                            waveStream = new WaveChannel32(vorbisStream);
+                        }
                     else
                     {
                         Program.Log("SURL Unsupported audio format", MessageType.Error);
                         return;
                     }
-                    
                     // Adjust the volume
                     var volumeProvider = new VolumeWaveProvider16(waveStream);
                     volumeProvider.Volume = volume;
@@ -117,7 +123,7 @@ namespace TwitchBot
                     waveStream.Dispose();
                 }
                 catch (Exception ex){
-                    Program.Log("An error occurred: " + ex.Message, MessageType.Error); // Handle any exceptions that occurred during the process
+                    Program.Log("SURL error occurred: " + ex.Message, MessageType.Error); // Handle any exceptions that occurred during the process
                 }
             }
         }

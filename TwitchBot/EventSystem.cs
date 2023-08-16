@@ -46,9 +46,7 @@ namespace TwitchBot
                 else{
                     goldDrop = false;
                     string multi = Program.config.pointsFromDrop > 1 ? $" {dropsLeft} " : $" ";
-                    string L = new Random().Next(0, 2) == 0 ? "𝗅" : "l";
-                    string I = new Random().Next(0, 2) == 0 ? "і" : "i";
-                    mesage = $"A W{I}{L}d Drop Has Apeared! First{multi}to use !Drop will get {Program.GetGlobalMultipliedPoints(Program.config.pointsFromDrop)} {Program.config.currencies}!";
+                    mesage = $"A Wild Drop Has Apeared! First{multi}to use !Drop will get {Program.GetGlobalMultipliedPoints(Program.config.pointsFromDrop)} {Program.config.currencies}!";
                 }
                 await Program.SendMessage(mesage);
             }
@@ -194,9 +192,12 @@ namespace TwitchBot
                     //get the tier
                     tier = int.Parse(message);
                     //check if the tier is valid
-                    if(tier < 1 || tier > 3){
-                        data.returnMessage = $"@{data.message.sender} that is not a valid tier!";
-                        return data;
+                    if(tier < 1 || tier > 4){
+                        if(!data.message.usermod)
+                        {
+                            data.returnMessage = $"@{data.message.sender} that is not a valid tier!";
+                            return data;
+                        }
                     }
                 }
                 else{
@@ -209,6 +210,7 @@ namespace TwitchBot
                 if(tier == 1){ cost = (int)Math.Floor(data.user.points * 0.1); }
                 else if(tier == 2){ cost = (int)Math.Floor(data.user.points * 0.2); }
                 else if(tier == 3){ cost = (int)Math.Floor(data.user.points * 0.3); }
+                else if(tier == 4){ cost = 0;}
                 if(data.user.points < cost){
                     data.returnMessage = $"@{data.message.sender} you don't have enough {Program.config.currencies}!";
                     return data;
@@ -219,10 +221,27 @@ namespace TwitchBot
                     return data;
                 }
                 //create a new padlock
-                activePadlocks.Add(new PadlockUser(data.message.sender, tier * 10, tier == 3));
-                //remove the beans from the user
-                data.user.points -= cost;
-                data.returnMessage = $"@{data.message.sender} bought a tier {tier} padlock for {cost.ToString("N0")} {Program.config.currencies}!";
+                if(tier != 4){
+                    activePadlocks.Add(new PadlockUser(data.message.sender, tier * 10, tier == 3));
+                    //remove the beans from the user
+                    data.user.points -= cost;
+                    data.returnMessage = $"@{data.message.sender} bought a tier {tier} padlock for {cost.ToString("N0")} {Program.config.currencies}!";
+                }
+                else{
+                    activePadlocks.Add(new PadlockUser(data.message.sender, int.MaxValue, true));
+                    //if user == channel
+                    if(data.user.name.ToLower() == Program.config.channel){
+                        data.returnMessage = $"@{data.message.sender} equipped a channel padlock!";
+                    }
+                    else if(data.user.name == "MasterAirscrach"){
+                        data.returnMessage = $"@{data.message.sender} take a break, you've earnt it!";
+                    }
+                    else{
+                        data.returnMessage = $"@{data.message.sender} bit scummy of you";
+                    }
+                }
+                
+                
                 return data;
             }
             catch{
@@ -237,11 +256,38 @@ namespace TwitchBot
             if(activePadlocks.Any(x => x.username == data.message.sender)){
                 //get the padlock
                 PadlockUser padlock = activePadlocks.Find(x => x.username == data.message.sender);
-                data.returnMessage = $"@{data.message.sender} your padlock will expire in {padlock.time} minutes!";
+                if(padlock.time > 30)
+                { data.returnMessage = $"@{data.message.sender} if your padlock runs out you have more issues than being stolen from"; }
+                else{ data.returnMessage = $"@{data.message.sender} your padlock will expire in {padlock.time} minutes!"; }
                 return data;
             }
             else
             { data.returnMessage = $"@{data.message.sender} you don't have a padlock, use !buypadlock to buy one!"; return data; }
+        }
+        //function to remove a padlock taking an optional user
+        public ProcessData RemovePadlock(ProcessData data)
+        {
+            //message will either be "removepadlock" or "removepadlock @user"
+            //check if the user has a padlock
+            string targetUser = "";
+            if(data.message.content.Length > 13){
+                //get the target
+                targetUser = data.message.content.Remove(0, 14);
+            }
+            else{
+                targetUser = data.message.sender;
+            }
+            if(activePadlocks.Any(x => x.username == targetUser)){
+                //get the padlock
+                PadlockUser padlock = activePadlocks.Find(x => x.username == targetUser);
+                //remove the padlock
+                activePadlocks.Remove(padlock);
+                //return a message
+                data.returnMessage = $"@{data.message.sender} removed {targetUser}'s padlock!";
+                return data;
+            }
+            else
+            { data.returnMessage = $"@{data.message.sender} {targetUser} does not have a padlock!"; return data; }
         }
         public ProcessData StartPrediction(ProcessData data){
             //message should look like this "startprediction prediction name, option 1, option 2, ect"

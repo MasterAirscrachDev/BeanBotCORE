@@ -667,20 +667,14 @@ namespace TwitchBot
             { if(globalVars[i].name == name){ return globalVars[i]; } }
             return new commandVar(name, "0");
         }
-        List<commandVar> MergeVars(commandVar newVar, List<commandVar> vars)
-        {
+        List<commandVar> MergeVars(commandVar newVar, List<commandVar> vars) {
             //check if a var with the same name exists
-            for(int i = 0; i < vars.Count; i++)
-            {
-                if(vars[i].name == newVar.name)
-                {
-                    //replace the var
-                    vars[i] = newVar; return vars;
+            for(int i = 0; i < vars.Count; i++) {
+                if(vars[i].name == newVar.name) {
+                    vars[i] = newVar; return vars; //replace the var
                 }
             }
-            //add the var
-            vars.Add(newVar);
-            //Console.WriteLine("vars merged successfully");
+            vars.Add(newVar); //add the var
             return vars;
         }
 
@@ -726,9 +720,7 @@ namespace TwitchBot
                             break;
                     }
                     input = input.Replace(match.Value, result.ToString());
-                }
-                catch{}
-                
+                } catch{}
             }
             return input;
         }
@@ -737,17 +729,14 @@ namespace TwitchBot
             //split the string on ,
             try{
                 string[] parts = input.Split(',');
-                //check if there is 2 or more parts
-                if (parts.Length < 2) { return null; }
-                //check if the min is valid
-                if (parts[0].Length < 1) { return null; }
-                //check if the max is valid
-                if (parts[1].Length < 1) { return null; }
+                
+                if (parts.Length < 2) { return null; } //check if there is 2 or more parts
+                if (parts[0].Length < 1) { return null; } //check if the min is valid
+                if (parts[1].Length < 1) { return null; } //check if the max is valid
                 //get the min and max
-                int min = int.Parse(parts[0]);
-                int max = int.Parse(parts[1]);
-                //check if the min is greater than the max
-                if(min > max){ return null; }
+                int min = int.Parse(parts[0]), max = int.Parse(parts[1]);
+                
+                if(min > max){ return null; } //check if the min is greater than the max
                 //return the var
                 Random r = new Random(hash);
                 return new commandVar("random", r.Next(min, max + 1).ToString());
@@ -933,7 +922,7 @@ namespace TwitchBot
             //check if the sound file exists
             if(!System.IO.File.Exists(sound)) { return false; }
             //check if the sound is a .wav or .mp3 file
-            if(!sound.EndsWith(".wav") && !sound.EndsWith(".mp3")) { return false; }
+            if(!sound.EndsWith(".wav") && !sound.EndsWith(".mp3")  && !sound.EndsWith(".ogg")) { return false; }
             if(check){return true;}
             //play the sound using naudio
             if(longSound != null && isLong) { longSound.Stop(); longSound = null; }

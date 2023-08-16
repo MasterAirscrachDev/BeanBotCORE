@@ -8,6 +8,7 @@ using System.Net;
 using System.Threading.Tasks;
 using TwitchLib.Api;
 using TwitchLib.Api.Core;
+using AsyncAwaitBestPractices;
 
 namespace TwitchBot
 {
@@ -168,5 +169,4 @@ namespace TwitchBot
             gitHubConnector.UploadHelp(commands);
         }
     }
-    
 }

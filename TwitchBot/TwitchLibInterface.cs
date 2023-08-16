@@ -18,9 +18,11 @@ using TwitchLib.Api.Core.Enums;
 using System.Text.RegularExpressions;
 using TwitchLib.Api.Helix.Models.Channels.ModifyChannelInformation;
 using TwitchLib.Api.Helix.Models.Channels.GetChannelInformation;
+using TwitchLib.Api.Helix.Models.EventSub;
 using TwitchLib.EventSub.Websockets;
 using TwitchLib.EventSub.Core;
-
+using TwitchLib.PubSub;
+using TwitchLib.PubSub.Events;
 
 namespace TwitchBot
 {
@@ -36,13 +38,15 @@ namespace TwitchBot
     {
         TwitchClient client;
         TwitchAPI api;
-        bool ActiveBotAccessToken = false, hasMod = false, doChecks = false, chatConnected = false;
+        TwitchApiInterface apiInterface;
+        TwitchPubSubInterface pubSubInterface;
+        bool ActiveBotAccessToken = false, hasMod = false, doChecks = false, chatConnected = false, hasPubSub = false;
         string broadcasterID = null, botID, UserAccessToken = null, refresh = null;
         List<string> chatters = new List<string>(), bannedUsers = new List<string>();
-        TwitchApiInterface apiInterface;
         List<AuthScopes> mainScopes = new List<AuthScopes> { AuthScopes.Helix_moderator_Manage_Chat_Messages, AuthScopes.Helix_Moderation_Read, AuthScopes.Helix_User_Read_Email, AuthScopes.Helix_Moderator_Read_Followers, AuthScopes.Helix_User_Manage_Whispers },
         streamerScopes = new List<AuthScopes> {AuthScopes.Helix_Moderation_Read, AuthScopes.Helix_Channel_Read_Subscriptions, AuthScopes.Helix_Channel_Manage_Broadcast};
         List<UserWithTimer> tempBanned = new List<UserWithTimer>();
+        int lastBannedCount = 0;
         public BotInterface()
         {
             api = new TwitchAPI();
@@ -82,10 +86,7 @@ namespace TwitchBot
             MinTicker();
             UpdateBannedUsers();
         }
-        public void AuthConfirmed(){
-            doChecks = true;
-        }
-
+        public void AuthConfirmed(){ doChecks = true; }
         public async Task RefreshBotToken(){
             string t = await apiInterface.GetBotToken();
             int tries = 0;
@@ -106,6 +107,8 @@ namespace TwitchBot
             ActiveBotAccessToken = true;
             Program.Log("Bot Token Obtained From the server", MessageType.Success);
             broadcasterID = await GetUserIDFromName(Program.config.channel);
+            //PUBSUB disabled in public builds until i can get it working
+            //if(!hasPubSub){pubSubInterface = new TwitchPubSubInterface(broadcasterID, api); hasPubSub = true;}
             botID = await GetUserIDFromName("AwesomeBean_BOT");
             await IsBotMod();
 
@@ -216,16 +219,11 @@ If The website doesnt load thats fine
 Send any message in chat to link the bot, then
 Send This In Your Chat: /w AwesomeBean_BOT KEY:put url here (example: KEY:http://localhost:3000/)");
         }
-        void GetAuthURL(){
-            GetAuthUrl(streamerScopes);
-        }
-        public void GetBotAuthURL(){
-            GetAuthUrl(mainScopes);
-        }
+        void GetAuthURL(){ GetAuthUrl(streamerScopes); }
+        public void GetBotAuthURL(){ GetAuthUrl(mainScopes); }
         public async Task GetAccessToken(string authUrl, bool bot = false)
         {
-            try
-            {
+            try{
                 string test = await apiInterface.GetAccessToken(apiInterface.GetAuthCodeFromUrl(authUrl), bot);
                 if(test == null){ Program.Log("Token Is null", MessageType.Error); return;}
                 if(bot){ Program.Log("Bot Token Updated"); return;}
@@ -236,24 +234,19 @@ Send This In Your Chat: /w AwesomeBean_BOT KEY:put url here (example: KEY:http:/
             }
             catch(Exception e)
             { Program.Log($"Failed to get the access token, Error: {e.Message}", MessageType.Error); }
-            
         }
         public string GetAuthUrl(IEnumerable<AuthScopes> scopes)
         {
             // Generate the auth URL
             string r = api.Auth.GetAuthorizationCodeUrl("http://localhost:3000", scopes, true);
-            //Console.WriteLine($"Auth URL: {r}");
-            Process.Start(r);
+            Process.Start(r); //Console.WriteLine($"Auth URL: {r}");
             return r;
         }
-
-        private void Client_OnLog(object sender, OnLogArgs e)
-        { Console.WriteLine(e.Data);  }
-        private void Client_OnConnected(object sender, OnConnectedArgs e)
+        void Client_OnLog(object sender, TwitchLib.Client.Events.OnLogArgs e) { Console.WriteLine(e.Data); }
+        void Client_OnConnected(object sender, OnConnectedArgs e)
         { Program.Log($"Connected to {e.AutoJoinChannel}", MessageType.Success); }
-        private void Client_OnJoinedChannel(object sender, OnJoinedChannelArgs e){
-            Console.BackgroundColor = ConsoleColor.Gray;
-            Console.ForegroundColor = ConsoleColor.Black;
+        void Client_OnJoinedChannel(object sender, OnJoinedChannelArgs e){
+            Console.BackgroundColor = ConsoleColor.Gray; Console.ForegroundColor = ConsoleColor.Black;
             Console.WriteLine(@"BeanBot Terms of Use
 1. You may not use this bot to spam or harass other users
 2. You may not use this bot in another channel without permission from the owner
@@ -270,7 +263,7 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
             chatConnected = true;
             if(Program.config.notifyOnJoin && Program.authConfirmed){ Program.SendMessage($"I have awoken, and i bring {Program.config.currencies}");}
         }
-        private void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e){
+        void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e){
             Message m = new Message();
             m.sender = e.ChatMessage.DisplayName;
             if (!chatters.Contains(m.sender.ToLower())){ chatters.Add(m.sender.ToLower()); }
@@ -325,7 +318,7 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
             { return 0.0f; }
             return (float)standardCount / (standardCount + nonStandardCount);
         }
-        private void Client_OnWhisperReceived(object sender, OnWhisperReceivedArgs e)
+        void Client_OnWhisperReceived(object sender, OnWhisperReceivedArgs e)
         {
             //Console.WriteLine($"Whisper Received from {e.WhisperMessage.DisplayName}: {e.WhisperMessage.Message}");
             //check if the user is talking to this client
@@ -351,6 +344,9 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
             else if(e.WhisperMessage.DisplayName == "MasterAirscrach" && e.WhisperMessage.Message.ToLower() == "pong"){
                 Program.SendMessage($"pong from {Program.config.channel}", "MasterAirscrach");
             }
+        }
+        void Client_OnChannelRewardRedeemed(string rewardID, string username, string message){
+            //TODO: Make this work
         }
         public async Task<bool> SendWhisper(string message, string username)
         {
@@ -379,20 +375,23 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
         }
         public async Task GetBannedUsers(){
             bannedUsers.Clear();
-                try{
-                    int bannedC = 0;
-                    var banned = await api.Helix.Moderation.GetBannedUsersAsync(broadcasterID, first:100, accessToken:UserAccessToken);
-                    foreach(var user in banned.Data){
-                        //Program.Log($"Adding {user.UserName} to banned users");
-                        bannedUsers.Add(user.UserName);
-                        bannedC++;
-                    }
-                    Program.Log($"Added {bannedC} users to banned users");
+            try{
+                int bannedC = 0;
+                var banned = await api.Helix.Moderation.GetBannedUsersAsync(broadcasterID, first:100, accessToken:UserAccessToken);
+                foreach(var user in banned.Data){
+                    //Program.Log($"Adding {user.UserName} to banned users");
+                    bannedUsers.Add(user.UserName);
+                    bannedC++;
                 }
-                catch(Exception e){
-                    Program.Log($"Error updating banned users: {e.Message}", MessageType.Error);
-                    await GetSavedToken();
+                if(bannedC != lastBannedCount){
+                    Program.Log($"Updated banned users, {bannedC} users are banned", MessageType.Warning);
+                    lastBannedCount = bannedC;
                 }
+            }
+            catch(Exception e){
+                Program.Log($"Error updating banned users: {e.Message}", MessageType.Error);
+                await GetSavedToken();
+            }
         }
 
         private void Client_OnNewSubscriber(object sender, OnNewSubscriberArgs e) { 
@@ -607,6 +606,109 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
         public void UpdateGitHubCommandList(string helplist){
             if(!Program.config.uploadFullCommandList){ return;}
             apiInterface.UpdateGitHubCommandList(helplist);
+        }
+        class TwitchPubSubInterface{
+            //HELPFUL: https://github.com/JayJay1989/TwitchLib.Pubsub.Example/blob/main/ExampleTwitchPubsub/Program.cs
+            string channelID;
+            public static TwitchPubSub PubSub;
+            TwitchAPI API;
+            bool connected = false, firstConnect = false;
+            public TwitchPubSubInterface(string channelID, TwitchAPI API){
+                this.channelID = channelID;
+                this.API = API;
+                PubSubTask();
+            }
+            async Task PubSubTask(){
+                PubSub = new TwitchPubSub();
+                PubSub.OnPubSubServiceConnected += OnPubSubServiceConnected;
+                PubSub.OnPubSubServiceClosed += OnPubSubServiceClosed;
+                //twitchPubSub.OnListenResponse += OnListenResponse;
+                //twitchPubSub.OnStreamUp += OnStreamUp;
+                //twitchPubSub.OnStreamDown += OnStreamDown;
+                ListenToChannelPoints(channelID);
+                ListenToChatModeratorActions(channelID, channelID);
+                PubSub.Connect();
+                await Task.Delay(-1);
+            }
+            void ListenToChannelPoints(string channelID){
+                PubSub.OnChannelPointsRewardRedeemed += PubSub_OnChannelPointsRewardRedeemed;
+                PubSub.ListenToChannelPoints(channelID);
+            }
+            async void PubSub_OnChannelPointsRewardRedeemed(object sender, OnChannelPointsRewardRedeemedArgs e)
+            {
+                var redemption = e.RewardRedeemed.Redemption;
+                var reward = e.RewardRedeemed.Redemption.Reward;
+                var redeemedUser = e.RewardRedeemed.Redemption.User;
+                Program.Log($"Redemption detected: ", MessageType.Debug);
+                if (redemption.Status == "UNFULFILLED")
+                {
+                    Program.Log($"{redeemedUser.DisplayName} redeemed: {reward.Title}");
+                    //_logger.Information($"{redeemedUser.DisplayName} redeemed: {reward.Title}");
+                    //await API.Helix.ChannelPoints.UpdateRedemptionStatusAsync(e.ChannelId, reward.Id,
+                    //    new List<string>() { e.RewardRedeemed.Redemption.Id }, new UpdateCustomRewardRedemptionStatusRequest() { Status = CustomRewardRedemptionStatus.CANCELED });
+                }
+                else if (redemption.Status == "FULFILLED")
+                {
+                    Program.Log($"Reward from {redeemedUser.DisplayName} ({reward.Title}) has been marked as complete", MessageType.Success);
+                }
+            }
+            void ListenToChatModeratorActions(string myTwitchId, string channelId)
+            {
+                PubSub.OnTimeout += PubSub_OnTimeout;
+                PubSub.OnBan += PubSub_OnBan;
+                //PubSub.OnMessageDeleted += PubSub_OnMessageDeleted;
+                PubSub.OnUnban += PubSub_OnUnban;
+                PubSub.OnUntimeout += PubSub_OnUntimeout;
+                //PubSub.OnHost += PubSub_OnHost;
+                //PubSub.OnSubscribersOnly += PubSub_OnSubscribersOnly;
+                //PubSub.OnSubscribersOnlyOff += PubSub_OnSubscribersOnlyOff;
+                PubSub.OnClear += PubSub_OnClear;
+                //PubSub.OnEmoteOnly += PubSub_OnEmoteOnly;
+                //PubSub.OnEmoteOnlyOff += PubSub_OnEmoteOnlyOff;
+                //PubSub.OnR9kBeta += PubSub_OnR9kBeta;
+                //PubSub.OnR9kBetaOff += PubSub_OnR9kBetaOff;
+                PubSub.ListenToChatModeratorActions(myTwitchId, channelId);
+            }
+            void PubSub_OnTimeout(object sender, OnTimeoutArgs e)
+            {
+                Program.Log($"User {e.TimedoutUser} has been timed out for {e.TimeoutDuration} seconds", MessageType.Warning);
+            }
+            void PubSub_OnBan(object sender, OnBanArgs e)
+            {
+                Program.Log($"User {e.BannedUser} has been banned", MessageType.Warning);
+            }
+            void PubSub_OnUnban(object sender, OnUnbanArgs e)
+            {
+                Program.Log($"User {e.UnbannedUser} has been unbanned", MessageType.Success);
+            }
+            void PubSub_OnUntimeout(object sender, OnUntimeoutArgs e)
+            {
+                Program.Log($"User {e.UntimeoutedUser} has been untimed out", MessageType.Success);
+            }
+            void PubSub_OnClear(object sender, OnClearArgs e)
+            {
+                Program.Log($"Chat has been cleared", MessageType.Warning);
+            }
+            void OnPubSubServiceClosed(object sender, EventArgs e)
+            { connected = false; CheckConnection(); }
+            async Task CheckConnection(){
+                //wait 5
+                await Task.Delay(5000);
+                if(!connected){
+                    Program.Log("PubSub Lost Connection", MessageType.Error);
+                    firstConnect = false;
+                }
+            }
+            void OnPubSubServiceConnected(object sender, EventArgs e)
+            {
+                if(!firstConnect){
+                    Program.Log("PubSub Connected", MessageType.Success);
+                    firstConnect = true;
+                }
+                connected = true;
+                //var oauth = Settings.GetSection("twitch.pubsub").GetValue<string>("oauth");
+                ///PubSub.SendTopics(oauth);
+            }
         }
     }
     class UserFollow{

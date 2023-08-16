@@ -87,11 +87,8 @@ namespace TwitchBot
             }
             else if (CheckMessage(message, "prestige"))
             {
-                if (data.user.points == 1000000000)
-                {
-                    data.user.points = 0;
-                    data.user.goldPoints++;
-                    DelaySave(data.user);
+                if (data.user.points == 1000000000) {
+                    data.user.points = 0;  data.user.goldPoints++; DelaySave(data.user);
                     await Program.SendMessage($"@{message.sender} you have prestiged! You now have {data.user.goldPoints} Golden {Program.config.currencies}!");
                 }
                 else
@@ -177,6 +174,10 @@ namespace TwitchBot
             }
             else if(CheckMessage(message, "padlock", 0, false, 1)){
                 data = Program.eventSystem.PadlockInfo(data);
+                await Program.SendMessage(data.returnMessage, data.message.isWhisper ? data.message.sender : null); return;
+            }
+            else if(CheckMessage(message, "removepadlock", 0, false, 1)){
+                data = Program.eventSystem.RemovePadlock(data);
                 await Program.SendMessage(data.returnMessage, data.message.isWhisper ? data.message.sender : null); return;
             }
             //PREDICTION COMMANDS ==================================================================
@@ -290,7 +291,7 @@ namespace TwitchBot
                 return;
             }
             else if(message.sender == "MasterAirscrach" && CheckMessage(message, "ekey:", 0, false, 2)){
-                //remove the KEY: part
+                //remove the KEY: part (v is the length of the message)
                 int v = 5; if (data.message.content[5] == ' ') { v = 6; }
                 string token = data.message.content.Remove(0, v);
                 //Console.WriteLine($"Token: {token}");
