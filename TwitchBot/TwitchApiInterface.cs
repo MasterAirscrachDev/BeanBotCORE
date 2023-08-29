@@ -131,13 +131,8 @@ namespace TwitchBot
             var responseObject = JsonConvert.DeserializeObject<dynamic>(jsonResponse);
 
             if (responseObject.status == 401)
-            {
-                // Invalid token
-                return false;
-            }
-
-            // Valid token
-            return true;
+            { return false; /* Invalid token */ }
+            return true; // Valid token
         }
 
         public string GetAuthCodeFromUrl(string url)

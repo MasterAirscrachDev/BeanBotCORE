@@ -267,6 +267,10 @@ namespace TwitchBot
                     else if (func == "Setvar") { commandVar var = SetVarFromString(args); if(var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr;}else{ vars = MergeVars(var, vars); } }
                     else if (func == "Setglobalvar") { commandVar var = SetGlobalVarFromString(args); if(var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr;}else{ vars = MergeVars(var, vars); } }
                     else if (func == "Getglobalvar") { commandVar var = GetGlobalVar(args); vars = MergeVars(var, vars); }
+
+                    else if (func == "Setpersistantvar") { commandVar var = await SetPersistantVarFromString(args); if(var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr;}else{ vars = MergeVars(var, vars); } }
+                    else if (func == "Getpersistantvar") { commandVar var = await GetPersistantVar(args); vars = MergeVars(var, vars); }
+
                     else if (func == "Playsound") { string location = args.Remove(args.Length - 1, 1).Remove(0, 1);  if (!PlaySound(location, false, true)) { lr.error = true; lr.errorCode = "Sound Path Incorrect or not Found"; return lr; } else if(!check){ PlaySound(location);} }
                     else if (func == "Playlongsound") { string location = args.Remove(args.Length - 1, 1).Remove(0, 1); if (!PlaySound(location, true, true)) { lr.error = true; lr.errorCode = "Sound Path Incorrect or not Found"; return lr; } else if(!check){ PlaySound(location, true); } }
                     else if (func == "Modpoints"){ try{ int mod = int.Parse(args); if(!check){SaveUserWithChange(data.user.name, mod); data.user.points += mod; } } catch{ lr.error = true; lr.errorCode = $"pointChange Failed to Parse: '{args}'"; return lr; } }
@@ -661,6 +665,60 @@ namespace TwitchBot
             if(!exists){ globalVars.Add(newVar); }
             return newVar;
         }
+        async Task<commandVar> SetPersistantVarFromString(string str){
+            //massage should be in the format of "name=value"
+            //split the string on =
+            string[] parts = str.Split('=');
+            //check if there is 2 or more parts
+            if (parts.Length < 2) { return null; }
+            //check if the name is valid
+            if (parts[0].Length < 1) { return null; }
+            //check if the value is valid
+            if (parts[1].Length < 1) { return null; }
+            //return the var
+            //Console.WriteLine("var set successfully");
+            string data = parts[1], name = parts[0], path = "default";
+            //check if name contains a :
+            if(name.Contains(':')){
+                //split the name on :
+                string[] nameSplit = name.Split(':');
+                //check if there are 2 parts
+                if(nameSplit.Length != 2){ return null; }
+                //set the path and name
+                path = nameSplit[0]; name = nameSplit[1];
+            }
+
+            FileSuper fs = new FileSuper("BeanBot","ReplayStudios");
+            Save save = await fs.LoadFile($"persistantVars\\{path}.vars");
+            //check if the save is null
+            if(save == null){ 
+                save = new Save();
+            }
+            save.SetString(name, data);
+            await fs.SaveFile($"persistantVars\\{path}.vars", save);
+            return new commandVar(name, data);
+        }
+        async Task<commandVar> GetPersistantVar(string name){
+            string path = "default";
+            //check if name contains a :
+            if(name.Contains(':')){
+                //split the name on :
+                string[] nameSplit = name.Split(':');
+                //check if there are 2 parts
+                if(nameSplit.Length != 2){ return null; }
+                //set the path and name
+                path = nameSplit[0]; name = nameSplit[1];
+            }
+            FileSuper fs = new FileSuper("BeanBot","ReplayStudios");
+            Save save = await fs.LoadFile($"persistantVars\\{path}.vars");
+            //check if the save is null
+            if(save == null){ 
+                save = new Save();
+            }
+            string data = save.GetString(name);
+            if(data == null){ data = "0"; }
+            return new commandVar(name, data);
+        }
         commandVar GetGlobalVar(string name)
         {
             for(int i = 0; i < globalVars.Count; i++)
@@ -668,6 +726,7 @@ namespace TwitchBot
             return new commandVar(name, "0");
         }
         List<commandVar> MergeVars(commandVar newVar, List<commandVar> vars) {
+            if(newVar == null){ return vars; }
             //check if a var with the same name exists
             for(int i = 0; i < vars.Count; i++) {
                 if(vars[i].name == newVar.name) {

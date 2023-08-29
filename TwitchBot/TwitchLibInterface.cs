@@ -111,7 +111,6 @@ namespace TwitchBot
             //if(!hasPubSub){pubSubInterface = new TwitchPubSubInterface(broadcasterID, api); hasPubSub = true;}
             botID = await GetUserIDFromName("AwesomeBean_BOT");
             await IsBotMod();
-
         }
         async Task<string> GetUserIDFromName(string name){
             try{

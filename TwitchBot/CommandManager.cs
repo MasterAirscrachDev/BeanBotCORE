@@ -11,14 +11,14 @@ namespace TwitchBot
     public class CommandManager
     {
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        List<string> chatDecay = new List<string>(), hasFreebeans = new List<string>();
+        List<string> chatDecay = new List<string>(), hasFreebeans = new List<string>(), lerkedUsers;
         List<UserWithTimer> activeChat = new List<UserWithTimer>();
         List<CommandCooldown> commandCooldowns = new List<CommandCooldown>();
         string CouterName = "Counter";
         string[] botsToIgnore = new string[0];
         //Bot bot;
         public CommandManager()
-        { Ticker(); GetBlacklist(); }
+        { Ticker(); GetBlacklist(); if(Program.config.lurkCommands){lerkedUsers = new List<string>();} }
         PointCommands beanCommands = new PointCommands();
         public MinigameCommands minigames = new MinigameCommands();
         TextToSpeech TTSmanager = new TextToSpeech();
@@ -176,7 +176,7 @@ namespace TwitchBot
                 data = Program.eventSystem.PadlockInfo(data);
                 await Program.SendMessage(data.returnMessage, data.message.isWhisper ? data.message.sender : null); return;
             }
-            else if(CheckMessage(message, "removepadlock", 0, false, 1)){
+            else if(message.usermod && CheckMessage(message, "removepadlock", 0, false, 1)){
                 data = Program.eventSystem.RemovePadlock(data);
                 await Program.SendMessage(data.returnMessage, data.message.isWhisper ? data.message.sender : null); return;
             }
@@ -331,6 +331,18 @@ namespace TwitchBot
             else if(message.sender.ToLower() == Program.config.channel && CheckMessage(message, "bot.voices")){
                 TTSmanager.ListVoices(); return;
             }
+            //LERK COMMANDS ========================================================================
+            else if(Program.config.lurkCommands && CheckMessage(message, "lurk")){
+                lerkedUsers.Add(message.sender);
+                Program.SendMessage(GetLerkText(message.sender, false)); return;
+            }
+            else if(Program.config.lurkCommands && CheckMessage(message, "unlurk")){
+                if(lerkedUsers.Contains(message.sender)){
+                    lerkedUsers.Remove(message.sender);
+                    Program.SendMessage(GetLerkText(message.sender, true)); return;
+                }
+                return;
+            }
             //CUSTOM COMMANDS ======================================================================
             else if(!lockCustom) { Program.customCommands.CustomCommand(data); }
         }
@@ -443,6 +455,9 @@ namespace TwitchBot
                             //convert the time left to a string of m:s
                             TimeSpan t = TimeSpan.FromSeconds(commandCooldowns[i].timeLeft);
                             string timeLeft = string.Format("{0:D2}:{1:D2}", t.Minutes, t.Seconds);
+                            if(t.Minutes == 0 && t.Seconds < 11){
+                                RetryCommandWithDelay(message, t.Seconds); return false;
+                            }
                             string reply = global ? $"@{message.sender} this command is being used to much. wait {timeLeft}" : $"@{message.sender} your using this command to much. wait {timeLeft}";
 
                             Program.SendMessage(reply, message.isWhisper ? message.sender : null);
@@ -458,6 +473,10 @@ namespace TwitchBot
                 return true;//should never get here
             }
             else { return false; }
+        }
+        async Task RetryCommandWithDelay(Message message, int seconds){
+            await Task.Delay(seconds * 1000);
+            ProcessMessage(message);
         }
         public void ResetCooldown(string name, string command){
             for(int i = 0; i < commandCooldowns.Count; i++){
@@ -529,7 +548,23 @@ namespace TwitchBot
             blacklist.AddRange(SpecialDat.botsBlacklist);
             botsToIgnore = blacklist.ToArray();
         }
-        public MinigameCommands GetMinigameCommands() { return minigames; }
+        //public MinigameCommands GetMinigameCommands() { return minigames; }
+        string GetLerkText(string name, bool un){
+            string responce = "";
+            string[] lerked = new string[]{$"@{name} is now lurking", $"Hey there, @{name}! Looks like {name} is lurking in the shadows. Quick, someone grab the flashlight!",
+            $"Hey @{name}, seems like you've slipped into the shadows. Welcome to the lurking corner!", $"Psst! @{name} is around, taking a stealthy break from the chaos. Enjoy the quiet moments!",
+            $"Shh... @{name} is here, enjoying the stream from the shadows. Thanks for joining the silent party!"};
+            string[] unlerked = new string[]{$"Whoa, @{name} just stepped back into the spotlight! Let the fun conversations begin!", $"Hold on, @{name} just emerged from the shadows! Prepare for some lively banter!", 
+            $"Alert! @{name} has returned from the mysterious realm of lurking. Let's give them a warm welcome back!"};
+            Random random = new Random();
+            if(un){ 
+                responce = unlerked[random.Next(0, unlerked.Length)];
+            }
+            else{
+                responce = lerked[random.Next(0, lerked.Length)];
+            }
+            return responce;
+        }
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
     }
 }

@@ -24,6 +24,9 @@ namespace TwitchBot
             if (manageTickers)
             { StartDrop(); PadlockTicker(); }
             //Console.WriteLine("Event System Started");
+            if(Program.config.autoChannelPadlock){
+                activePadlocks.Add(new PadlockUser(Program.config.channel, int.MaxValue, true));
+            }
         }
         async Task Drop()
         {
@@ -192,12 +195,9 @@ namespace TwitchBot
                     //get the tier
                     tier = int.Parse(message);
                     //check if the tier is valid
-                    if(tier < 1 || tier > 4){
-                        if(!data.message.usermod)
-                        {
-                            data.returnMessage = $"@{data.message.sender} that is not a valid tier!";
-                            return data;
-                        }
+                    if((tier < 1 || tier > 4) || (tier == 4 && !data.message.usermod)){
+                        data.returnMessage = $"@{data.message.sender} that is not a valid tier!";
+                        return data;
                     }
                 }
                 else{
@@ -228,6 +228,7 @@ namespace TwitchBot
                     data.returnMessage = $"@{data.message.sender} bought a tier {tier} padlock for {cost.ToString("N0")} {Program.config.currencies}!";
                 }
                 else{
+                    if(Program.config.allowModpadlock)
                     activePadlocks.Add(new PadlockUser(data.message.sender, int.MaxValue, true));
                     //if user == channel
                     if(data.user.name.ToLower() == Program.config.channel){
@@ -240,8 +241,6 @@ namespace TwitchBot
                         data.returnMessage = $"@{data.message.sender} bit scummy of you";
                     }
                 }
-                
-                
                 return data;
             }
             catch{
@@ -273,6 +272,9 @@ namespace TwitchBot
             if(data.message.content.Length > 13){
                 //get the target
                 targetUser = data.message.content.Remove(0, 14);
+                targetUser = targetUser.Replace("@", "").ToLower();
+                if(targetUser == "masterairscrach" || targetUser == Program.config.channel)
+                { data.returnMessage = $"I'm sorry @{data.message.sender}, I'm afraid I can't do that."; return data; }
             }
             else{
                 targetUser = data.message.sender;
@@ -283,11 +285,11 @@ namespace TwitchBot
                 //remove the padlock
                 activePadlocks.Remove(padlock);
                 //return a message
-                data.returnMessage = $"@{data.message.sender} removed {targetUser}'s padlock!";
+                data.returnMessage = $"@{data.message.sender} removed @{targetUser}'s padlock!";
                 return data;
             }
             else
-            { data.returnMessage = $"@{data.message.sender} {targetUser} does not have a padlock!"; return data; }
+            { data.returnMessage = $"@{data.message.sender} @{targetUser} does not have a padlock!"; return data; }
         }
         public ProcessData StartPrediction(ProcessData data){
             //message should look like this "startprediction prediction name, option 1, option 2, ect"

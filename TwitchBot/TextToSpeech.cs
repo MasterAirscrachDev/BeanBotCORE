@@ -163,8 +163,18 @@ namespace TwitchBot
             if(wordCount == 1 && words[0].Length > 15){ Program.Log("TTS Failed: single long word", MessageType.Warning); return false; }
             //if any of the words is longer than 20 characters fail
             foreach(string word in words){ if(word.Length > 20){ Program.Log("TTS Failed: found word too long", MessageType.Warning); return false; } }
-            if(wordCount > 1){
+            if(wordCount > 2){
                 //check the max number of duplicate words
+                string filteredMessage = message.Replace("  ", " ");
+                //replace any non-letter or number characters with spaces
+                for(int i = 0; i < filteredMessage.Length; i++){
+                    if(!char.IsLetterOrDigit(filteredMessage[i])){
+                        filteredMessage = filteredMessage.Remove(i, 1);
+                        filteredMessage = filteredMessage.Insert(i, " ");
+                    }
+                }
+                while(filteredMessage.Contains("  ")){ filteredMessage = filteredMessage.Replace("  ", " "); }
+                words = filteredMessage.Split(' ');
                 int maxDuplicateWords = 0;
                 string maxDuplicateWord = "";
                 for(int i = 0; i < wordCount; i++){
@@ -177,13 +187,12 @@ namespace TwitchBot
                 //get the ratio of duplicate words to total words
                 float ratio = (float)maxDuplicateWords / (float)wordCount;
                 Program.Log($"Duplicates: {ratio * 100}%", MessageType.Debug);
-                if(ratio > 0.5f){ Program.Log("TTS Failed: too many duplicate words 0", MessageType.Warning); return false; }
+                if(ratio > 0.46f){ Program.Log("TTS Failed: too many duplicate words 0", MessageType.Warning); return false; }
 
 
                 //bool isJibberish = IsJibberish(message);
                 //if(isJibberish){ Program.Log("TTS Failed: jibberish", MessageType.Warning); return false; }
             }
-
             Program.Log("TTS Filter Passed", MessageType.Success);
             return true;
         }

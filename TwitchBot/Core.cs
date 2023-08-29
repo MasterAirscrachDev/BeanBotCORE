@@ -45,6 +45,9 @@ namespace TwitchBot
             cfg.giveTaxPercent = 0;
             cfg.ignoreToken = false;
             cfg.autoDeleteSpam = false;
+            cfg.autoChannelPadlock = false;
+            cfg.allowModpadlock = false;
+            cfg.lurkCommands = false;
             string writeConfig = GetConfigString(cfg);
             //check if the config file exists
             string[] lines = SaveSystem.GetPlaintextFile("config.dat");
@@ -110,6 +113,9 @@ namespace TwitchBot
                         else if (key == "Tier2SubTTSTokens") { cfg.t2TTS = Convert.ToInt32(data); }
                         else if (key == "Tier3SubTTSTokens") { cfg.t3TTS = Convert.ToInt32(data); }
                         else if (key == "FilterChatMessages") { cfg.autoDeleteSpam = Convert.ToBoolean(data); }
+                        else if (key == "AutoPadlock") { cfg.autoChannelPadlock = Convert.ToBoolean(data); }
+                        else if (key == "AllowModpadlock"){ cfg.allowModpadlock = Convert.ToBoolean(data);}
+                        else if (key == "LurkCommands"){ cfg.lurkCommands = Convert.ToBoolean(data);}
                     }
                     catch{ }
                 }
@@ -146,6 +152,7 @@ DailyPoints<{cfg.dailyPoints}    / the amount of points a user gets from the fre
 PointsFromDrop<{cfg.pointsFromDrop}   / the base amount of points a user gets from a drop (default = 50)
 DropRate<{cfg.dropTimer}    / the delay between drops in minutes (must be positive and more than 0) (default = 10)
 DropPercent<{cfg.dropPercent}    / the Percentage drops spawned (based on users) (must be between 10-100) (default = 60)
+NotifyOnDropsRemaining<{cfg.notifyOnDropsRemaining}    / notify the chat when drops are remaining [True | False] (default = True)
 ---MULTIPLIERS---
 ViewerMultiplier<{cfg.viewerMultiplier}    / the multiplier for viewers (default = 1.0)
 FollowerMultiplier<{cfg.followerMultiplier}    / the multiplier for followers (default = 1.5)
@@ -173,14 +180,18 @@ MinigamesCost<{cfg.minigamesCost}    / the cost to open the minigames (-1 = no m
 MinigamesDuration<{cfg.minigamesDuration}    / the duration of the minigames in minutes (default = 6)
 MinigamesCooldown<{cfg.minigamesCooldown}    / the cooldown of the minigames in seconds (default = 600)
 GlobalMinigamesCooldown<{cfg.noMinigamesStack}    / Minigames cooldown applies to all users [True | False] (default = False)
----OTHER---
+---CHAT AND MODERATION---
+WarnIfBadSyntax<{cfg.warnIfBadSyntax}    / warn if a command was typed wrong [True | False] (default = True)
+AllowModpadlock<{cfg.allowModpadlock}    / allow mods to use padlock 4 [True | False] (default = False)
+FilterChatMessages<{cfg.autoDeleteSpam}    / auto delete large non-english messages (eg ascii art) [True | False] (default = False)
+---STARTUP---
 DontUseToken<{cfg.ignoreToken}    / dont request a Token, this disables some features, not reccomended [True | False] (default = False)
 NoFloor<{cfg.noFloor}    / Disable !Floor [True | False] (default = False)
-WarnIfBadSyntax<{cfg.warnIfBadSyntax}    / warn if a command was typed wrong [True | False] (default = True)
-FilterChatMessages<{cfg.autoDeleteSpam}    / auto delete large non-english messages (eg ascii art) [True | False] (default = False)
+AutoPadlock<{cfg.warnIfBadSyntax}    / automatically gives the streamer a padlock [True | False] (default = False)
 NotifyOnJoin<{cfg.notifyOnJoin}    / notify the chat when the bot joins [True | False] (default = True)
-UploadFullCommandList<{cfg.uploadFullCommandList}    / upload the full command list for online viewing [True | False] (default = True)
-NotifyOnDropsRemaining<{cfg.notifyOnDropsRemaining}    / notify the chat when drops are remaining [True | False] (default = True)";
+---OTHER---
+LurkCommands<{cfg.lurkCommands}    / enable lurk and unlurk commands [True | False] (default = False)
+UploadFullCommandList<{cfg.uploadFullCommandList}    / upload the full command list for online viewing [True | False] (default = True)";
             return writeConfig;
         }
     }
@@ -188,7 +199,8 @@ NotifyOnDropsRemaining<{cfg.notifyOnDropsRemaining}    / notify the chat when dr
 public class BotSystem{
     public string name, channel, prefix, currency, currencies, ttsVoice;
     public bool warnIfBadSyntax, notifyOnJoin, notifyOnDropsRemaining, chatSayTTSCost, betaTTSFilter, noFloor,
-    noMinigamesStack, uploadFullCommandList, ignoreToken, autoDeleteSpam;
+    noMinigamesStack, uploadFullCommandList, ignoreToken, autoDeleteSpam, autoChannelPadlock, allowModpadlock,
+    lurkCommands;
     public int ttsCost, ttsPerToken, baseTTSTokens, pointsFromDrop, taxPercent, taxThreshold, dailyPoints,
     t1points, t2points, t3points, t1gold, t2gold, t3gold, minigamesCost, minigamesDuration, minigamesCooldown,
     dropTimer, dropPercent, giveTaxPercent, t1TTS, t2TTS, t3TTS;

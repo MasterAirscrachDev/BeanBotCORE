@@ -9,7 +9,7 @@ namespace TwitchBot
     {
         public static List<string> sendList = new List<string>();
         public static BotSystem config;
-        public static string version = "v1.2.9";
+        public static string version = "v1.3.1";
         public static EventSystem eventSystem;
         public static CommandManager commandManager;
         public static TwitchLibInterface twitchLibInterface;

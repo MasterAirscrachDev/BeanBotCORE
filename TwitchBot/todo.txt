@@ -1,4 +1,4 @@
-persistent variables (between restarts)
+persistent variables (between restarts) done maybe
 
 fix channel title update
 
