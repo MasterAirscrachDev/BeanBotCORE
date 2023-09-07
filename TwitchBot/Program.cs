@@ -9,7 +9,7 @@ namespace TwitchBot
     {
         public static List<string> sendList = new List<string>();
         public static BotSystem config;
-        public static string version = "v1.3.1";
+        public static string version = "v1.3.2";
         public static EventSystem eventSystem;
         public static CommandManager commandManager;
         public static TwitchLibInterface twitchLibInterface;
@@ -156,7 +156,7 @@ Send The Following Whisper To The Bot to Authenticate
 public class Message
 {
     public string sender, content, channel, messageID, color;
-    public bool usermod, firstMessage, isWhisper;
+    public bool usermod, firstMessage, isWhisper, userdev;
     public int bits;
 }
 public enum MessageType

@@ -245,5 +245,16 @@ namespace TwitchBot
             
 
         }
+        public async Task<ProcessData> GetUserInfo(ProcessData data){
+            string[] args = data.message.content.Split(' ');
+            string user = args[1].Replace("@", "");
+            User u = await SaveSystem.GetUser(user);
+            if(u.subTier == -1 && u.points == 0){
+                data.returnMessage = $"@{data.message.sender} user not found";
+                return data;
+            }
+            data.returnMessage = $"@{data.message.sender} {u.name} has {u.points} {Program.config.currencies}, {u.goldPoints} gold {Program.config.currencies}, and {u.ttsTokens} tts tokens.";
+            return data;
+        }
     }
 }

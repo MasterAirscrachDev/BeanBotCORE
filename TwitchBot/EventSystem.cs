@@ -187,15 +187,15 @@ namespace TwitchBot
             try{
                 //if the message is just !buypadlock then buy a tier 1 padlock
                 //remove the buypadlock part
-                string message = data.message.content.Remove(0, 11);
+                string message = data.message.content.Remove(0, 10);
                 //check if the user has enough beans
                 //check if there is a tier
                 int tier = -1;
                 if(message.Length > 0){
                     //get the tier
-                    tier = int.Parse(message);
+                    tier = int.Parse(message.Remove(0,1));
                     //check if the tier is valid
-                    if((tier < 1 || tier > 4) || (tier == 4 && !data.message.usermod)){
+                    if((tier == 4 && !data.message.usermod) || (tier < 1 || tier > 4)){
                         data.returnMessage = $"@{data.message.sender} that is not a valid tier!";
                         return data;
                     }
@@ -228,8 +228,6 @@ namespace TwitchBot
                     data.returnMessage = $"@{data.message.sender} bought a tier {tier} padlock for {cost.ToString("N0")} {Program.config.currencies}!";
                 }
                 else{
-                    if(Program.config.allowModpadlock)
-                    activePadlocks.Add(new PadlockUser(data.message.sender, int.MaxValue, true));
                     //if user == channel
                     if(data.user.name.ToLower() == Program.config.channel){
                         data.returnMessage = $"@{data.message.sender} equipped a channel padlock!";
@@ -237,9 +235,14 @@ namespace TwitchBot
                     else if(data.user.name == "MasterAirscrach"){
                         data.returnMessage = $"@{data.message.sender} take a break, you've earnt it!";
                     }
-                    else{
+                    else if(Program.config.allowModpadlock && data.message.usermod) {
                         data.returnMessage = $"@{data.message.sender} bit scummy of you";
                     }
+                    else{
+                        data.returnMessage = $"I'm Sorry @{data.message.sender} I'm afraid do that!";
+                        return data;
+                    }
+                    activePadlocks.Add(new PadlockUser(data.message.sender, int.MaxValue, true));
                 }
                 return data;
             }

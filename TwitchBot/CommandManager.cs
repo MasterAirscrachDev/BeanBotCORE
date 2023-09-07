@@ -272,8 +272,11 @@ namespace TwitchBot
             else if(message.usermod && CheckMessage(message, "bot.lock")){
                 lockCustom = !lockCustom; Program.SendMessage($"CustomCommandsLocked: {lockCustom}"); return;
             }
+            else if(message.usermod && CheckMessage(message, "bot.check")){
+                data = await beanCommands.GetUserInfo(data);  Program.SendMessage(data.returnMessage); return;
+            }
             //DEV COMMANDS ==========================================================================
-            else if(message.sender == "MasterAirscrach" && CheckMessage(message, "dev.getfollowers")){
+            else if(message.userdev && CheckMessage(message, "dev.getfollowers")){
                 //split message on space
                 List<string> users = await Program.twitchLibInterface.bot.GetFollowers(); 
                 Program.Log($"users: {users.Count}", MessageType.Debug);
@@ -282,7 +285,7 @@ namespace TwitchBot
                 }
                 return;
             }
-            else if(message.sender == "MasterAirscrach" && CheckMessage(message, "dev.getsubs")){
+            else if(message.userdev && CheckMessage(message, "dev.getsubs")){
                 //split message on space
                 List<UserSub> users = await Program.twitchLibInterface.bot.GetSubscribers();
                 foreach(UserSub user in users){
@@ -290,7 +293,7 @@ namespace TwitchBot
                 }
                 return;
             }
-            else if(message.sender == "MasterAirscrach" && CheckMessage(message, "ekey:", 0, false, 2)){
+            else if(message.userdev && CheckMessage(message, "ekey:", 0, false, 2)){
                 //remove the KEY: part (v is the length of the message)
                 int v = 5; if (data.message.content[5] == ' ') { v = 6; }
                 string token = data.message.content.Remove(0, v);
@@ -299,22 +302,22 @@ namespace TwitchBot
                     Program.twitchLibInterface.bot.GetAccessToken(token, true); //is actaully the url
                 }
             }
-            else if(message.sender == "MasterAirscrach" && CheckMessage(message, "fakebits")){
+            else if(message.userdev && CheckMessage(message, "fakebits")){
                 //split message on space
                 string[] split = message.content.Split(' ');
                 int bits2 = int.Parse(split[1]);
                 Program.customCommands.BitsCommand(data, bits2);
                 return;
             }
-            else if(message.sender == "MasterAirscrach" && CheckMessage(message, "return", 0, false, 1))
+            else if(message.userdev && CheckMessage(message, "return", 0, false, 1))
             { await Program.SendMessage($"{message.content.Remove(0,7)}"); return; }
-            else if(message.sender == "MasterAirscrach" && CheckMessage(message, "EmergencyToken")){
+            else if(message.userdev && CheckMessage(message, "EmergencyToken")){
                 Program.twitchLibInterface.bot.GetBotAuthURL(); return;
             }
-            else if(message.sender == "MasterAirscrach" && CheckMessage(message, "surl", 0, false, 1)){
+            else if(message.userdev && CheckMessage(message, "surl", 0, false, 1)){
                 Task.Run(() => utility.PlayAudioFromUrl(message.content.Remove(0,5))); return;
             }
-            else if(message.sender == "MasterAirscrach" && CheckMessage(message, "curl", 0, false, 1)){
+            else if(message.userdev && CheckMessage(message, "curl", 0, false, 1)){
                 Task.Run(() => Program.customCommands.ReadTextFileFromUrl(message.content.Remove(0,5))); return;
             }
             //TTS COMMANDS =========================================================================

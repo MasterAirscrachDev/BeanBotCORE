@@ -174,7 +174,7 @@ namespace TwitchBot
             }
             else{
                 Program.Log("", MessageType.Success);
-                Program.Log($"You are using Dev version {Program.version}", MessageType.Success);
+                Program.Log($"You are using Dev version {Program.version} (Server: {svVersion})", MessageType.Success);
                 Program.Log("", MessageType.Success);
             }
         }

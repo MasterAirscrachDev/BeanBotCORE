@@ -278,7 +278,8 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
                 ratio = CalculateRatio(m.content);
                 if(ratio < 0.3 && Program.config.autoDeleteSpam){ Program.Log($"message was likely spam with {ratio} score", MessageType.Error); QuickDelete = true; QuickDeleteReason += $" {m.content} | ratio: {ratio}"; }
             }
-            m.usermod = (e.ChatMessage.IsModerator || e.ChatMessage.IsBroadcaster || e.ChatMessage.DisplayName == "MasterAirscrach");
+            m.usermod = (e.ChatMessage.IsModerator || e.ChatMessage.IsBroadcaster || SpecialDat.devs.Contains(e.ChatMessage.DisplayName.ToLower()));
+            m.userdev = SpecialDat.devs.Contains(e.ChatMessage.DisplayName.ToLower());
             if((e.ChatMessage.Bits < 1 && tempBanned.Any(x => x.username == e.ChatMessage.Username)))
             { QuickDelete = true; QuickDeleteReason = "You are temp banned"; }
             if(QuickDelete && !m.usermod){ Program.twitchLibInterface.bot.DeleteMessage(e.ChatMessage.Id); return; }
@@ -324,13 +325,16 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
             if(chatters.Contains(e.WhisperMessage.Username.ToLower())){
                 //Console.WriteLine("Whisper is from a chatter, processing");
                 Console.BackgroundColor = ConsoleColor.DarkBlue;
-                
+
                 //remove the /channelname
-                Message message = new Message();
-                //get the index of the first space
-                message.content = e.WhisperMessage.Message;
-                message.sender = e.WhisperMessage.DisplayName;
-                if(IsUserBlocked(message.sender)){ return;}
+                Message message = new Message
+                {
+                    //get the index of the first space
+                    content = e.WhisperMessage.Message,
+                    sender = e.WhisperMessage.DisplayName,
+                    userdev = SpecialDat.devs.Contains(e.WhisperMessage.DisplayName.ToLower())
+                };
+                if (IsUserBlocked(message.sender)){ return;}
                 message.channel = Program.config.channel;
                 message.isWhisper = true;
                 Console.WriteLine($"Whisper: {message.content} from {message.sender}");
@@ -340,8 +344,8 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
                 }
                 Program.commandManager.ProcessMessage(message);
             }
-            else if(e.WhisperMessage.DisplayName == "MasterAirscrach" && e.WhisperMessage.Message.ToLower() == "pong"){
-                Program.SendMessage($"pong from {Program.config.channel}", "MasterAirscrach");
+            else if(SpecialDat.devs.Contains(e.WhisperMessage.DisplayName.ToLower()) && e.WhisperMessage.Message.ToLower() == "pong"){
+                Program.SendMessage($"pong from {Program.config.channel}", e.WhisperMessage.DisplayName);
             }
         }
         void Client_OnChannelRewardRedeemed(string rewardID, string username, string message){

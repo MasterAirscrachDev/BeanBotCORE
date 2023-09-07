@@ -92,8 +92,12 @@ namespace TwitchBot
                 if(split.Length != 3){ data.returnMessage = $"@{data.message.sender} use !editTTS @user amount"; return data; }
                 string user = split[1].Replace("@", "");
                 int amount = int.Parse(split[2]);
+                //cap the amount between -9999 and 9999
+                if(amount > 9999){ amount = 9999; }
+                if(amount < -9999){ amount = -9999; }
                 User u = await SaveSystem.GetUser(user);
-                u.ttsTokens += amount;
+                if(amount == 0){ u.ttsTokens = 0;}
+                else{ u.ttsTokens += amount; }
                 await SaveSystem.SaveUser(u);
                 data.returnMessage = $"@{data.message.sender} @{user} now has {u.ttsTokens} TTS Tokens";
                 return data;

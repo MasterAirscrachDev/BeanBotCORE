@@ -1,6 +1,6 @@
-persistent variables (between restarts) done maybe
-
 fix channel title update
+
+blank lines in offsetlevel commands crash the bot
 
 surl file
 

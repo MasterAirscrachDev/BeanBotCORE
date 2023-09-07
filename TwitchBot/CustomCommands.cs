@@ -229,14 +229,13 @@ namespace TwitchBot
             if(!commandIds.Contains(id) && id != -1){ return lr;}
             int maxlines = lines.Length;
             int i = 0;
-            if (lr == null)
-            { lr = new LineReturn(); lr.line = 2; i = 1; lr.vars = new commandVar[0]; }
+            if (lr == null) { lr = new LineReturn(); lr.line = 2; i = 1; lr.vars = new commandVar[0]; }
             List<commandVar> vars = new List<commandVar>();
             if(OldVars != null){ vars.AddRange(OldVars); OldVars = null; }
             //Program.Log(vars.ToString(), MessageType.Debug);
             while (i < maxlines){
                 try{
-                    if(string.IsNullOrEmpty(lines[i])){ i++; continue;}
+                    if(string.IsNullOrEmpty(lines[i])){ i++; lr.line++; continue;}
                     string[] split = lines[i].Split('<');
 
                     string func = split[0], args = "";
@@ -244,7 +243,7 @@ namespace TwitchBot
                     int offset = 0;
                     while(func[0] == ' '){ func = func.Remove(0, 1); offset++; }
                     if(split.Length > 1){ args = split[1]; }
-                    if(split.Length > 2){for(int j = 2; j < split.Length; j++){ args += split[j]; }} //combine the rest of the line into the args
+                    if(split.Length > 2){for(int j = 2; j < split.Length; j++){ args += $"<{split[j]}"; }} //combine the rest of the line into the args
                     
                     args = parseString(args, data); //add special data to args
                     //Program.Log($"Args: {args}", MessageType.Debug);
@@ -252,87 +251,76 @@ namespace TwitchBot
                     //Program.Log($"Args: {args}", MessageType.Debug);
                     args = parseMaths(args); //calculate any maths in args
                     //Console.BackgroundColor = ConsoleColor.DarkYellow;
-                    //Program.Log($"Line: {i} GlobalLine {lr.line} Func: {func} Args: {args}", MessageType.Debug);
+                    //Console.BackgroundColor = ConsoleColor.Black; Console.Write($"Line: {i} GlobalLine {lr.line}  Func: "); Console.BackgroundColor = ConsoleColor.DarkYellow; Console.Write($"{func}"); Console.BackgroundColor = ConsoleColor.Black; Console.Write($" Args: "); Console.BackgroundColor = ConsoleColor.DarkBlue; Console.WriteLine($"{args}");
                     //check if the line has a keyword
-                    if (func == "Wait") { int time = int.Parse(args); if(!check){ await Task.Delay(time); if(!commandIds.Contains(id) && id != -1){lr.canceled = true; return lr;} } }
-                    else if (func == "Keydown") { VirtualKeyCode v = GetKey(args);  if(v == VirtualKeyCode.NONAME){ lr.error = true; lr.errorCode = "Unknown Key"; return lr;} else if(!check){ input.Keyboard.KeyDown(v); } }
-                    else if (func == "Keyup") { VirtualKeyCode v = GetKey(args);  if(v == VirtualKeyCode.NONAME){ lr.error = true; lr.errorCode = "Unknown Key"; return lr;} else if(!check){ input.Keyboard.KeyUp(v); } }
-                    else if (func == "Keypress") { VirtualKeyCode v = GetKey(args);  if(v == VirtualKeyCode.NONAME){ lr.error = true; lr.errorCode = "Unknown Key"; return lr;} else if(!check){ input.Keyboard.KeyPress(v); } }
-                    else if (func == "Click") { if(!MouseClick(args, true)) {lr.error = true; lr.errorCode = "Unknown Mouse Button"; return lr;} else if(!check){ MouseClick(args); } }
-                    else if (func == "Chat") { if(!check){await Program.SendMessage(args); } }
-                    else if (func == "Whisper") { if(!check && data.message.isWhisper){await Program.SendMessage(args, data.user.name); } }
-                    else if (func == "Reply") { if(!check){if(data.message.isWhisper){ await Program.SendMessage(args, data.user.name);}else{await Program.SendMessage($"@{data.user.name} {args}");}}}
-                    else if (func == "Log") { if(!check){ Program.Log($"SCRIPT LOG: {args}", MessageType.Debug); } }
+                    if (func == "Wait") { int time = int.Parse(args); if (!check) { await Task.Delay(time); if (!commandIds.Contains(id) && id != -1) { lr.canceled = true; return lr; } } }
+                    else if (func == "Keydown") { VirtualKeyCode v = GetKey(args); if (v == VirtualKeyCode.NONAME) { lr.error = true; lr.errorCode = "Unknown Key"; return lr; } else if (!check) { input.Keyboard.KeyDown(v); } }
+                    else if (func == "Keyup") { VirtualKeyCode v = GetKey(args); if (v == VirtualKeyCode.NONAME) { lr.error = true; lr.errorCode = "Unknown Key"; return lr; } else if (!check) { input.Keyboard.KeyUp(v); } }
+                    else if (func == "Keypress") { VirtualKeyCode v = GetKey(args); if (v == VirtualKeyCode.NONAME) { lr.error = true; lr.errorCode = "Unknown Key"; return lr; } else if (!check) { input.Keyboard.KeyPress(v); } }
+                    else if (func == "Click") { if (!MouseClick(args, true)) { lr.error = true; lr.errorCode = "Unknown Mouse Button"; return lr; } else if (!check) { MouseClick(args); } }
+                    else if (func == "Chat") { if (!check) { await Program.SendMessage(args); } }
+                    else if (func == "Whisper") { if (!check && data.message.isWhisper) { await Program.SendMessage(args, data.user.name); } }
+                    else if (func == "Reply") { if (!check) { if (data.message.isWhisper) { await Program.SendMessage(args, data.user.name); } else { await Program.SendMessage($"@{data.user.name} {args}"); } } }
+                    else if (func == "Sreply") { if (!check) { if (data.message.isWhisper) { await Program.SendMessage(args, data.user.name); } else { await Program.SendMessage(args); } } }
+                    else if (func == "Log") { if (!check) { Program.Log($"SCRIPT LOG: {args}", MessageType.Debug); } }
                     else if (func == "fLog") { Program.Log($"SCRIPT fLOG: {args}", MessageType.Debug); }
-                    else if (func == "Setvar") { commandVar var = SetVarFromString(args); if(var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr;}else{ vars = MergeVars(var, vars); } }
-                    else if (func == "Setglobalvar") { commandVar var = SetGlobalVarFromString(args); if(var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr;}else{ vars = MergeVars(var, vars); } }
+                    else if (func == "Setvar") { commandVar var = SetVarFromString(args); if (var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr; } else { vars = MergeVars(var, vars); } }
+                    else if (func == "Setglobalvar") { commandVar var = SetGlobalVarFromString(args); if (var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr; } else { vars = MergeVars(var, vars); } }
                     else if (func == "Getglobalvar") { commandVar var = GetGlobalVar(args); vars = MergeVars(var, vars); }
-
-                    else if (func == "Setpersistantvar") { commandVar var = await SetPersistantVarFromString(args); if(var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr;}else{ vars = MergeVars(var, vars); } }
+                    else if (func == "Setpersistantvar") { commandVar var = await SetPersistantVarFromString(args); if (var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr; } else { vars = MergeVars(var, vars); } }
                     else if (func == "Getpersistantvar") { commandVar var = await GetPersistantVar(args); vars = MergeVars(var, vars); }
 
-                    else if (func == "Playsound") { string location = args.Remove(args.Length - 1, 1).Remove(0, 1);  if (!PlaySound(location, false, true)) { lr.error = true; lr.errorCode = "Sound Path Incorrect or not Found"; return lr; } else if(!check){ PlaySound(location);} }
-                    else if (func == "Playlongsound") { string location = args.Remove(args.Length - 1, 1).Remove(0, 1); if (!PlaySound(location, true, true)) { lr.error = true; lr.errorCode = "Sound Path Incorrect or not Found"; return lr; } else if(!check){ PlaySound(location, true); } }
-                    else if (func == "Modpoints"){ try{ int mod = int.Parse(args); if(!check){SaveUserWithChange(data.user.name, mod); data.user.points += mod; } } catch{ lr.error = true; lr.errorCode = $"pointChange Failed to Parse: '{args}'"; return lr; } }
-                    else if (func == "ModpointsUserMulti"){ try{ int mod = int.Parse(args); if(!check){ mod = Program.GetUserMultipliedPoints(mod, data.user); SaveUserWithChange(data.user.name, mod, 0,0,true); data.user.points += mod; } } catch{ lr.error = true; lr.errorCode = $"multiPointChange Failed to Parse: '{args}'"; return lr; } }
-                    else if (func == "ModpointsMulti"){ try{ int mod = int.Parse(args); if(!check){mod = Program.GetMaxMultipliedPoints(mod, data.user); SaveUserWithChange(data.user.name, mod, 0,0,true); data.user.points += mod; } } catch{ lr.error = true; lr.errorCode = $"multiPointChange Failed to Parse: '{args}'"; return lr; } }
-                    else if (func == "Globalkey"){ if(check && !SendGlobalKey(args, true)){lr.error = true; lr.errorCode = "Unknown Key"; return lr;}else{ SendGlobalKey(args);}}
-                    else if (func == "Movemouse"){ if(check && !MouseMove(args, true)){lr.error = true; lr.errorCode = "Invalid Mouse Pos"; return lr;}else{ MouseMove(args);}}
-                    else if (func == "GetRandomNum"){ commandVar var = GetRandomInRange(args, data.GetHashCode()); if(var == null) { lr.error = true; lr.errorCode = "Random Num Generation Failed"; return lr;}else{ vars = MergeVars(var, vars); }}
-                    else if (func == "GetActiveChat"){ MergeVars(new commandVar("activeChat", Program.commandManager.GetActiveChatters().ToString()), vars);}
-                    else if (func == "Modtts"){ try{ int mod = int.Parse(args); if(!check){SaveUserWithChange(data.user.name, 0,0,mod);} } catch{ lr.error = true; lr.errorCode = $"ttsChange Failed to Parse: '{args}'"; return lr; } }
-                    else if (func == "Modgold"){ try{ int mod = int.Parse(args); if(!check){SaveUserWithChange(data.user.name, 0, mod);} } catch{ lr.error = true; lr.errorCode = $"goldChange Failed to Parse: '{args}'"; return lr; } }
-                    else if (func == "Immortalize") { id = -1;}
-                    else if (func == "AddGlobalMulti") { try{split = args.Split(','); float multi = float.Parse(split[0]); int duration = int.Parse(split[1]); if(!check){Program.TempMulti(multi,duration);}}catch{ lr.error = true; lr.errorCode = $"AddGlobalMulti Failed to Parse: '{args}'"; return lr;}}
-                    else if (func == "#"){}
-                    else if (func == "Loop"){
+                    else if (func == "LowerVar") { vars = LowerVar(vars, args); }
+                    else if (func == "UpperVar") { vars = UpperVar(vars, args); }
+
+                    else if (func == "Playsound") { string location = args.Remove(args.Length - 1, 1).Remove(0, 1); if (!PlaySound(location, false, true)) { lr.error = true; lr.errorCode = "Sound Path Incorrect or not Found"; return lr; } else if (!check) { PlaySound(location); } }
+                    else if (func == "Playlongsound") { string location = args.Remove(args.Length - 1, 1).Remove(0, 1); if (!PlaySound(location, true, true)) { lr.error = true; lr.errorCode = "Sound Path Incorrect or not Found"; return lr; } else if (!check) { PlaySound(location, true); } }
+                    else if (func == "Modpoints") { try { int mod = int.Parse(args); if (!check) { SaveUserWithChange(data.user.name, mod); data.user.points += mod; } } catch { lr.error = true; lr.errorCode = $"pointChange Failed to Parse: '{args}'"; return lr; } }
+                    else if (func == "ModpointsUserMulti") { try { int mod = int.Parse(args); if (!check) { mod = Program.GetUserMultipliedPoints(mod, data.user); SaveUserWithChange(data.user.name, mod, 0, 0, true); data.user.points += mod; } } catch { lr.error = true; lr.errorCode = $"multiPointChange Failed to Parse: '{args}'"; return lr; } }
+                    else if (func == "ModpointsMulti") { try { int mod = int.Parse(args); if (!check) { mod = Program.GetMaxMultipliedPoints(mod, data.user); SaveUserWithChange(data.user.name, mod, 0, 0, true); data.user.points += mod; } } catch { lr.error = true; lr.errorCode = $"multiPointChange Failed to Parse: '{args}'"; return lr; } }
+                    else if (func == "Globalkey") { if (check && !SendGlobalKey(args, true)) { lr.error = true; lr.errorCode = "Unknown Key"; return lr; } else { SendGlobalKey(args); } }
+                    else if (func == "Movemouse") { if (check && !MouseMove(args, true)) { lr.error = true; lr.errorCode = "Invalid Mouse Pos"; return lr; } else { MouseMove(args); } }
+                    else if (func == "GetRandomNum") { commandVar var = GetRandomInRange(args, data.GetHashCode()); if (var == null) { lr.error = true; lr.errorCode = "Random Num Generation Failed"; return lr; } else { vars = MergeVars(var, vars); } }
+                    else if (func == "GetActiveChat") { MergeVars(new commandVar("activeChat", Program.commandManager.GetActiveChatters().ToString()), vars); }
+                    else if (func == "Modtts") { try { int mod = int.Parse(args); if (!check) { SaveUserWithChange(data.user.name, 0, 0, mod); } } catch { lr.error = true; lr.errorCode = $"ttsChange Failed to Parse: '{args}'"; return lr; } }
+                    else if (func == "Modgold") { try { int mod = int.Parse(args); if (!check) { SaveUserWithChange(data.user.name, 0, mod); } } catch { lr.error = true; lr.errorCode = $"goldChange Failed to Parse: '{args}'"; return lr; } }
+                    else if (func == "Immortalize") { id = -1; }
+                    else if (func == "AddGlobalMulti") { try { split = args.Split(','); float multi = float.Parse(split[0]); int duration = int.Parse(split[1]); if (!check) { Program.TempMulti(multi, duration); } } catch { lr.error = true; lr.errorCode = $"AddGlobalMulti Failed to Parse: '{args}'"; return lr; } }
+                    else if (func == "#") { }
+                    else if (func == "Loop")
+                    {
                         //get the number of loops
-                        try{
+                        try
+                        {
                             int loops = int.Parse(args);
                             //Console.WriteLine($"Repeat: {loops}");
                             //for each line below the repeat line that starts with a In
-                            List<string> loopLines = new List<string>();
-                            //add all the lines to the list that have an indent of offset + 1
-                            int checkO = offset + 1;
-                            for(int j = i + 1; j < maxlines; j++){
-                                //check if the line has an indent of checkO
-                                int o = 0;
-                                while(lines[j][o] == ' '){ o++; }
-                                if(o >= checkO){ loopLines.Add(lines[j]); }
-                                else if(o < checkO){ break; }
-                            }
-                            //Console.WriteLine($"Obtained Loop Lines");
+                            List<string> loopLines = GetSubLines(lines, offset, i, maxlines);
                             //run the lines the number of times
                             lr.line++;
                             LineReturn l = new LineReturn();
-                            for(int x = 0; x < loops; x++){
+                            for (int x = 0; x < loops; x++)
+                            {
                                 l = await RunLines(loopLines.ToArray(), data, id, check, lr, vars.ToArray());
-                                if(l.canceled){ lr.canceled = true; return lr; }
-                                else if(l.error){ lr.error = true; lr.errorCode = l.errorCode; return lr; }
+                                if (l.canceled) { lr.canceled = true; return lr; }
+                                else if (l.error) { lr.error = true; lr.errorCode = l.errorCode; return lr; }
                                 //log all the vars
-                                for(int j = 0; j < l.vars.Length; j++){ vars = MergeVars(l.vars[j], vars); }
+                                for (int j = 0; j < l.vars.Length; j++) { vars = MergeVars(l.vars[j], vars); }
                             }
                             i += loopLines.Count + 1;
                             lr.line = l.line;
                             //Console.WriteLine($"Repeat Finished");
                         }
-                        catch{ lr.error = true; lr.errorCode = "Loop Exeption"; return lr; }
+                        catch { lr.error = true; lr.errorCode = "Loop Exeption"; return lr; }
                     }
-                    else if (func == "Random"){
+                    else if (func == "Random")
+                    {
                         //get the possible lines
-                        try{
-                            List<string> randomLines = new List<string>();
-                            //add all the lines to the list that have an indent of offset + 1
-                            int checkO = offset + 1;
-                            for(int j = i + 1; j < maxlines; j++){
-                                //check if the line has an indent of checkO
-                                int o = 0;
-                                while(lines[j][o] == ' '){ o++; }
-                                if(o >= checkO){ randomLines.Add(lines[j]); }
-                                else if(o < checkO){ break; }
-                            }
+                        try
+                        {
+                            List<string> randomLines = GetSubLines(lines, offset, i, maxlines);
                             //if there are 1 or less lines, error
-                            if(randomLines.Count <= 1){ lr.error = true; lr.errorCode = "Random Event Requires 2 or more lines"; return lr; }
+                            if (randomLines.Count <= 1) { lr.error = true; lr.errorCode = "Random Event Requires 2 or more lines"; return lr; }
                             //pick a random line
                             Random r = new Random(data.GetHashCode());
                             //Console.WriteLine($"Random: {data.GetHashCode()}");
@@ -340,132 +328,139 @@ namespace TwitchBot
                             //get a random number between 0 and the number of lines then check if that line has an indent of checkO
                             bool found = false;
                             int tries = 0;
-                            while(!found){
+                            while (!found)
+                            {
                                 //add 1 to rand and check if it is greater than the number of lines
-                                rand++; if(rand >= randomLines.Count){ rand = 0; }
+                                rand++; if (rand >= randomLines.Count) { rand = 0; }
                                 int o = 0;
-                                while(randomLines[rand][o] == ' '){ o++; }
-                                if(o >= checkO){ found = true; } tries++;
-                                if(tries > randomLines.Count){ lr.error = true; lr.errorCode = "Random Event Failed to Find a Line"; return lr; }
+                                while (randomLines[rand][o] == ' ') { o++; }
+                                if (o >= offset + 1) { found = true; }
+                                tries++;
+                                if (tries > randomLines.Count) { lr.error = true; lr.errorCode = "Random Event Failed to Find a Line"; return lr; }
                             }
                             //get an array of the line and all the lines below it with an indent higher than checkO
                             int leng = 1;
-                            for(int j = rand + 1; j < randomLines.Count; j++){
+                            for (int j = rand + 1; j < randomLines.Count; j++)
+                            {
                                 int o = 0;
-                                while(randomLines[j][o] == ' '){ o++; }
-                                if(o > checkO){ leng++; }
-                                else{ break; }
+                                while (randomLines[j][o] == ' ') { o++; }
+                                if (o > offset + 1) { leng++; }
+                                else { break; }
                             }
                             string[] linesToRun = new string[leng];
                             //Console.WriteLine($"Lines length: {leng}");
-                            for(int j = 0; j < leng; j++){ linesToRun[j] = randomLines[rand + j]; }
+                            for (int j = 0; j < leng; j++) { linesToRun[j] = randomLines[rand + j]; }
                             //run the line
                             //for(int j = 0; j < linesToRun.Length; j++){ Console.WriteLine($"Random Line: {linesToRun[j]}"); }
                             lr.line++;
                             LineReturn l = await RunLines(linesToRun, data, id, check, lr, vars.ToArray());
                             //log all the vars
-                            for(int j = 0; j < l.vars.Length; j++){ vars = MergeVars(l.vars[j], vars); }
+                            for (int j = 0; j < l.vars.Length; j++) { vars = MergeVars(l.vars[j], vars); }
                             lr.line += randomLines.Count; //THIS LINE IS WRONG IDK WHY
                             i += randomLines.Count;
                             //lr.line = l.line;
-                            if(l.error){ lr.error = true;lr.errorCode = l.errorCode; return lr; }
-                            else if(l.canceled){ lr.canceled = true; return lr; }
+                            if (l.error) { lr.error = true; lr.errorCode = l.errorCode; return lr; }
+                            else if (l.canceled) { lr.canceled = true; return lr; }
                         }
-                        catch{ lr.error = true; lr.errorCode = "Random Event Exeption"; return lr; }
+                        catch { lr.error = true; lr.errorCode = "Random Event Exeption"; return lr; }
                     }
-                    else if (func == "If"){
-                        try{
+                    else if (func == "If")
+                    {
+                        try
+                        {
                             //compare the two values
                             //get the value
-                            if(CompareValues(args) == null){ lr.error = true; lr.errorCode = "Invalid If Statement"; return lr;}
+                            if (CompareValues(args) == null) { lr.error = true; lr.errorCode = "Invalid If Statement"; return lr; }
 
-                            if((bool)CompareValues(args)){
+                            if ((bool)CompareValues(args))
+                            {
                                 //get the lines to run
-                                List<string> ifLines = new List<string>();
-                                //add all the lines to the list that have an indent of offset + 1
-                                int checkO = offset + 1;
-                                for(int j = i + 1; j < maxlines; j++){
-                                    //check if the line has an indent of checkO
-                                    int o = 0;
-                                    while(lines[j][o] == ' '){ o++; }
-                                    if(o >= checkO){ ifLines.Add(lines[j]); }
-                                    else if(o < checkO){ break; }
-                                }
+                                List<string> ifLines = GetSubLines(lines, offset, i, maxlines);
                                 //run the lines
                                 lr.line++;
                                 LineReturn l = await RunLines(ifLines.ToArray(), data, id, check, lr, vars.ToArray());
+                                //Program.Log("Lines Were Returned");
                                 //log all the vars
-                                for(int j = 0; j < l.vars.Length; j++){ vars = MergeVars(l.vars[j], vars); }
+                                for (int j = 0; j < l.vars.Length; j++) { vars = MergeVars(l.vars[j], vars); }
                                 i += ifLines.Count;
                                 lr.line = l.line;
-                                if(l.error){ lr.error = true;lr.errorCode = l.errorCode; return lr; }
-                                else if(l.canceled){ lr.canceled = true; return lr; }
+                                if (l.error) { lr.error = true; lr.errorCode = l.errorCode; return lr; }
+                                else if (l.canceled) { lr.canceled = true; return lr; }
                             }
-                            else{
+                            else
+                            {
                                 //skip the lines
                                 int checkO = offset + 1;
                                 int toSkip = 0;
-                                for(int j = i + 1; j < maxlines; j++){
+                                for (int j = i + 1; j < maxlines; j++)
+                                {
                                     //check if the line has an indent of checkO
                                     int o = 0;
-                                    while(lines[j][o] == ' '){ o++; }
-                                    if(o >= checkO){ toSkip++; }
-                                    else if(o < checkO){ break; }
+                                    while (lines[j][o] == ' ') { o++; }
+                                    if (o >= checkO) { toSkip++; }
+                                    else if (o < checkO) { break; }
                                 }
                                 i += toSkip;
                             }
-                            
+
                             //also check num == num, num < num, num > num
                         }
-                        catch{
-                            Program.Log(vars.ToString(), MessageType.Debug);
+                        catch
+                        {
+                            Program.Log($"IF ERROR: {vars.ToString()}", MessageType.Debug);
                             lr.error = true; lr.errorCode = "If Statement Exeption"; return lr;
                         }
-                        
+
                     }
-                    else if(func == "While"){
-                        try{
+                    else if (func == "While")
+                    {
+                        try
+                        {
                             //compare the two values
                             //get the value
-                            if(CompareValues(args) == null){ lr.error = true; lr.errorCode = "Invalid While Statement"; return lr;}
+                            if (CompareValues(args) == null) { lr.error = true; lr.errorCode = "Invalid While Statement"; return lr; }
                             bool b = (bool)CompareValues(args);
                             List<string> whileLines = new List<string>();
-                            if(b){
+                            if (b)
+                            {
                                 //get the lines to run
-                                
+
                                 //add all the lines to the list that have an indent of offset + 1
                                 int checkO = offset + 1;
                                 //Console.WriteLine("Adding Lines To While Loop");
-                                for(int j = i + 1; j < maxlines; j++){
+                                for (int j = i + 1; j < maxlines; j++)
+                                {
                                     //check if the line has an indent of checkO
                                     //Console.WriteLine(lines[j]);
                                     int o = 0;
-                                    while(lines[j][o] == ' '){ o++; }
-                                    if(o >= checkO){ whileLines.Add(lines[j]); }
-                                    else if(o < checkO){ break; }
+                                    while (lines[j][o] == ' ') { o++; }
+                                    if (o >= checkO) { whileLines.Add(lines[j]); }
+                                    else if (o < checkO) { break; }
                                 }
                                 //make sure there is at least one Wait< in the while loop
                                 bool hasWait = false;
                                 //Console.WriteLine("Check While Loop for Wait");
-                                for(int j = 0; j < whileLines.Count; j++){
+                                for (int j = 0; j < whileLines.Count; j++)
+                                {
                                     //Console.WriteLine(whileLines[j]);
-                                    if(whileLines[j].Contains("Wait<")){ hasWait = true; break; }
+                                    if (whileLines[j].Contains("Wait<")) { hasWait = true; break; }
                                 }
-                                if(!hasWait){Program.Log("Wait not Found", MessageType.Error);  lr.error = true; lr.line -= whileLines.Count; lr.errorCode = "While Loop has no Wait"; return lr; }
+                                if (!hasWait) { Program.Log("Wait not Found", MessageType.Error); lr.error = true; lr.line -= whileLines.Count; lr.errorCode = "While Loop has no Wait"; return lr; }
                                 //run the lines
                                 lr.line++;
-                                while(b){
+                                while (b)
+                                {
                                     LineReturn lineOut = await RunLines(whileLines.ToArray(), data, id, check, lr, vars.ToArray());
                                     //log all the vars
-                                    for(int j = 0; j < lineOut.vars.Length; j++){ vars = MergeVars(lineOut.vars[j], vars); }
-                                    
+                                    for (int j = 0; j < lineOut.vars.Length; j++) { vars = MergeVars(lineOut.vars[j], vars); }
+
                                     lr.line = lineOut.line;
-                                    if(lineOut.error){ lr.error = true;lr.errorCode = lineOut.errorCode; return lr; }
-                                    else if (lineOut.canceled){ lr.canceled = true; return lr; }
+                                    if (lineOut.error) { lr.error = true; lr.errorCode = lineOut.errorCode; return lr; }
+                                    else if (lineOut.canceled) { lr.canceled = true; return lr; }
                                     //check the value again
                                     args = GetCurrentArgs(lines[i], data, vars.ToArray());
                                     //Console.WriteLine($"Updated Args: {args}");
-                                    if(CompareValues(args) == null){ lr.error = true; lr.errorCode = "While Statement Execution Error"; return lr;}
+                                    if (CompareValues(args) == null) { lr.error = true; lr.errorCode = "While Statement Execution Error"; return lr; }
                                     //Program.Log(args, MessageType.Debug);
                                     b = (bool)CompareValues(args);
                                     //if we are still in the while loop, reset the line
@@ -475,13 +470,17 @@ namespace TwitchBot
                             }
                             i += whileLines.Count;
                         }
-                        catch(Exception e){
+                        catch (Exception e)
+                        {
                             lr.error = true; lr.errorCode = $"While Statement Exeption: {e}"; return lr;
                         }
                     }
-                    else { lr.error = true; lr.errorCode = "Unknown Function"; 
-                        if(func == "Message"){ lr.errorCode = "Message is Depricated, use 'Reply'"; }
-                        return lr; 
+                    else if (func == "End") { lr.canceled = true; return lr; }
+                    else
+                    {
+                        lr.error = true; lr.errorCode = "Unknown Function";
+                        if (func == "Message") { lr.errorCode = "Message is Depricated, use 'Reply'"; }
+                        return lr;
                     }
                 }
                 catch{ lr.error = true; lr.errorCode = "ParseError"; return lr; }
@@ -549,7 +548,13 @@ namespace TwitchBot
                     commandVar[] vars = null;
                     if(data.perams){
                         //Console.WriteLine($"Perams ={messageData.message.content}");
-                        vars = new commandVar[]{new commandVar("perams", messageData.message.content.Remove(0, data.name.Length + 1))};
+                        vars = new commandVar[1];
+                        try{
+                            vars[0] = new commandVar("perams", messageData.message.content.Remove(0, data.name.Length + 1));
+                        }
+                        catch{
+                            vars[0] = new commandVar("perams", "");
+                        }
                     }
                     await RunLines(lines, messageData, id, false, null, vars);
                     if(commandIds.Contains(id)){ commandIds.Remove(id); }
@@ -573,6 +578,21 @@ namespace TwitchBot
             args = parseMaths(args); //calculate any maths in args
             //Program.Log($"Args: {args}", MessageType.Debug);
             return args;
+        }
+        List<string> GetSubLines(string[] lines, int offset, int start, int maxlines){
+            //get the lines to run
+            List<string> subLines = new List<string>();
+            //add all the lines to the list that have an indent of offset + 1
+            int checkO = offset + 1;
+            for (int j = start + 1; j < maxlines; j++)
+            {
+                //check if the line has an indent of checkO
+                int o = 0;
+                while (lines[j][o] == ' ') { o++; }
+                if (o >= checkO) { subLines.Add(lines[j]); }
+                else if (o < checkO) { break; }
+            }
+            return subLines;
         }
         bool? CompareValues(string args){
             if(args.Contains('=')){
@@ -717,6 +737,7 @@ namespace TwitchBot
             }
             string data = save.GetString(name);
             if(data == null){ data = "0"; }
+            //Program.Log($"Persistant Var: {name} = {data}", MessageType.Debug);
             return new commandVar(name, data);
         }
         commandVar GetGlobalVar(string name)
@@ -734,6 +755,26 @@ namespace TwitchBot
                 }
             }
             vars.Add(newVar); //add the var
+            return vars;
+        }
+
+        List<commandVar> LowerVar(List<commandVar> vars, string name){
+            for(int i = 0; i < vars.Count; i++){
+                if(vars[i].name == name){
+                    vars[i].value = vars[i].value.ToLower();
+                    return vars;
+                }
+            }
+            return vars;
+        }
+
+        List<commandVar> UpperVar(List<commandVar> vars, string name){
+            for(int i = 0; i < vars.Count; i++){
+                if(vars[i].name == name){
+                    vars[i].value = vars[i].value.ToUpper();
+                    return vars;
+                }
+            }
             return vars;
         }
 

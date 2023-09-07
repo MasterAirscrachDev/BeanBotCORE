@@ -187,7 +187,7 @@ FilterChatMessages<{cfg.autoDeleteSpam}    / auto delete large non-english messa
 ---STARTUP---
 DontUseToken<{cfg.ignoreToken}    / dont request a Token, this disables some features, not reccomended [True | False] (default = False)
 NoFloor<{cfg.noFloor}    / Disable !Floor [True | False] (default = False)
-AutoPadlock<{cfg.warnIfBadSyntax}    / automatically gives the streamer a padlock [True | False] (default = False)
+AutoPadlock<{cfg.autoChannelPadlock}    / automatically gives the streamer a padlock [True | False] (default = False)
 NotifyOnJoin<{cfg.notifyOnJoin}    / notify the chat when the bot joins [True | False] (default = True)
 ---OTHER---
 LurkCommands<{cfg.lurkCommands}    / enable lurk and unlurk commands [True | False] (default = False)
