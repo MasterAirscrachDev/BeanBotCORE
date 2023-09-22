@@ -37,9 +37,7 @@ namespace TwitchBot
             if(message.bits > 0){ data.user.points += message.bits * 8; Program.customCommands.BitsCommand(data, message.bits); }
             //load tempmultiplier if the user has one
             //BASE COMMANDS ========================================================================
-            if (CheckMessage(message, "hi"))
-            { await Program.SendMessage($"Howdy @{message.sender}, type !help to get started"); return; }
-            else if (CheckMessage(message, "help", 0, false, 1))
+            if (CheckMessage(message, "help", 0, false, 1))
             {
                 data = Program.helpSystem.Help(data);
                 await Program.SendMessage(data.returnMessage, data.message.isWhisper ? data.message.sender : null); return;
@@ -159,7 +157,7 @@ namespace TwitchBot
                 DelaySave(data.user);
                 await Program.SendMessage(data.returnMessage); return;
             }
-            else if(CheckMessage(message, "steal", 60)){
+            else if(!Program.config.noSteal && CheckMessage(message, "steal", 60)){
                data = await Program.eventSystem.Steal(data, activeChat.ToArray());
                DelaySave(data.user);
                await Program.SendMessage(data.returnMessage); return;
@@ -167,12 +165,12 @@ namespace TwitchBot
             else if(CheckMessage(message, "catch", 0, false, 1)){
                Program.eventSystem.CancelSteal(data); return;
             }
-            else if(CheckMessage(message, "buypadlock", 0, false, 1)){
+            else if(!Program.config.noSteal && CheckMessage(message, "buypadlock", 0, false, 1)){
                 data = Program.eventSystem.BuyPadlock(data);
                 DelaySave(data.user);
                 await Program.SendMessage(data.returnMessage, data.message.isWhisper ? data.message.sender : null); return;
             }
-            else if(CheckMessage(message, "padlock", 0, false, 1)){
+            else if(!Program.config.noSteal && CheckMessage(message, "padlock", 0, false, 1)){
                 data = Program.eventSystem.PadlockInfo(data);
                 await Program.SendMessage(data.returnMessage, data.message.isWhisper ? data.message.sender : null); return;
             }

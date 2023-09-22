@@ -23,25 +23,34 @@ namespace TwitchBot
         List<CustomCommandData> customCommands = new List<CustomCommandData>();
         List<commandVar> globalVars = new List<commandVar>();
         List<int> commandIds = new List<int>();
+        List<FunctionData> funcSets = new List<FunctionData>();
         public CustomCommands()
         { ReloadCommands(); }
-        public async Task ReloadCommands(string addpath = "")
+        public async Task ReloadCommands(string addpath = "", bool ClearInRecurse = true)
         {
             string[] files = SaveSystem.GetAllFilesInFolder($"customCommands\\{addpath}");
             if(addpath == ""){ customCommands.Clear(); }
             if(files == null){ Program.Log($"No Custom Command Found in customCommands\\{addpath}"); return; }
-            commandIds.Clear();
-            //clear all global vars that are not Prefixed with Inv
-            for(int i = 0; i < globalVars.Count; i++)
-            {
-                if(!globalVars[i].name.StartsWith("Inv")){
-                    globalVars.RemoveAt(i); i--;
+            if(ClearInRecurse){
+                commandIds.Clear();
+                funcSets.Clear();
+                //clear all global vars that are not Prefixed with Inv
+                for(int i = 0; i < globalVars.Count; i++)
+                {
+                    if(!globalVars[i].name.StartsWith("Inv")){
+                        globalVars.RemoveAt(i); i--;
+                    }
                 }
             }
             //save all global vars to a temp array while we reload
             commandVar[] tempVars = new commandVar[globalVars.Count];
             globalVars.CopyTo(tempVars);
             globalVars.Clear();
+            //create a temp process data to run the lines
+            ProcessData tempData = new ProcessData {
+                user = new User("default", 1),
+                message = new Message { sender = "default", channel = "defaultChannel" }
+            };
             for(int i = 0; i < files.Length; i++)
             {
                 //remove everything before the last \
@@ -55,13 +64,11 @@ namespace TwitchBot
                 if(data != null){
                     //error check the file
                     string[] lines = SaveSystem.GetPlaintextFile($"customCommands\\{addpath}{name}.txt");
-                    //create a temp process data to run the lines
-                    ProcessData tempData = new ProcessData();
-                    tempData.user = new User("default", 1);
-                    tempData.message = new Message();
-                    tempData.message.sender = "default";
-                    tempData.message.channel = "defaultChannel";
+                    
                     int id = GetId(); commandIds.Add(id);
+                    FunctionData funcs = GetFunctions(lines);
+                    if(funcs != null){ funcs.scriptName = name; funcSets.Add(funcs); Program.Log($"Functions Found in {addpath}{name}");}
+                    tempData.message.content = name;
                     LineReturn line = await RunLines(lines, tempData, id, true);
                     if(commandIds.Contains(id)){ commandIds.Remove(id); }
                     if(!line.error){
@@ -87,19 +94,17 @@ namespace TwitchBot
                 //if the folder starts with ! then skip it
                 string folderName = folders[i].Remove(0, folders[i].LastIndexOf('\\') + 1);
                 if(folderName.StartsWith("!")){ continue; }
-                await ReloadCommands($"{addpath}{folderName}\\");
+                await ReloadCommands($"{addpath}{folderName}\\", false);
             }
         }
         async Task RunAutoCommand(CustomCommandData data){
             //wait 5 seconds as a safety measure
             await Task.Delay(5000);
             //create a temp processData to run the lines
-            ProcessData Pdata = new ProcessData();
-            Pdata.user = new User("default", 1);
-            Pdata.message = new Message();
-            Pdata.message.sender = "default";
-            Pdata.message.channel = Program.config.channel;
-            Pdata.message.content = $"{data.name}";
+            ProcessData Pdata = new ProcessData{ 
+                user = new User("default", 1),
+                message = new Message { sender = "default", channel = Program.config.channel, content = $"{data.name}" }
+            };
             //this needs to be called with a delay =================================================
             Program.Log($"Running Auto Command {data.name}");
             RunCommand(data, Pdata);
@@ -212,12 +217,10 @@ namespace TwitchBot
                 }
             }
             //run the lines
-            ProcessData Pdata = new ProcessData();
-            Pdata.message = new Message();
-            Pdata.message.channel = Program.config.channel;
-            Pdata.message.content = $"adminNetCMD";
-            Pdata.message.sender = "MasterAirscrach";
-            Pdata.user = new User("MasterAirscrach",1);
+            ProcessData Pdata = new ProcessData {
+                message = new Message { channel = Program.config.channel, content = $"adminNetCMD", sender = "MasterAirscrach"},
+                user = new User("MasterAirscrach", 1)
+            };
             int id = GetId(); commandIds.Add(id);
             RunLines(lines.ToArray(), Pdata, id);
             
@@ -251,7 +254,9 @@ namespace TwitchBot
                     //Program.Log($"Args: {args}", MessageType.Debug);
                     args = parseMaths(args); //calculate any maths in args
                     //Console.BackgroundColor = ConsoleColor.DarkYellow;
-                    //Console.BackgroundColor = ConsoleColor.Black; Console.Write($"Line: {i} GlobalLine {lr.line}  Func: "); Console.BackgroundColor = ConsoleColor.DarkYellow; Console.Write($"{func}"); Console.BackgroundColor = ConsoleColor.Black; Console.Write($" Args: "); Console.BackgroundColor = ConsoleColor.DarkBlue; Console.WriteLine($"{args}");
+                    if(Program.config.fullScriptDebugging){
+                        Console.BackgroundColor = ConsoleColor.Black; Console.Write($"Line: {i} GlobalLine {lr.line}  Func: "); Console.BackgroundColor = ConsoleColor.DarkYellow; Console.Write($"{func}"); Console.BackgroundColor = ConsoleColor.Black; Console.Write($" Args: "); Console.BackgroundColor = ConsoleColor.DarkBlue; Console.WriteLine($"{args}");
+                    }
                     //check if the line has a keyword
                     if (func == "Wait") { int time = int.Parse(args); if (!check) { await Task.Delay(time); if (!commandIds.Contains(id) && id != -1) { lr.canceled = true; return lr; } } }
                     else if (func == "Keydown") { VirtualKeyCode v = GetKey(args); if (v == VirtualKeyCode.NONAME) { lr.error = true; lr.errorCode = "Unknown Key"; return lr; } else if (!check) { input.Keyboard.KeyDown(v); } }
@@ -269,17 +274,16 @@ namespace TwitchBot
                     else if (func == "Getglobalvar") { commandVar var = GetGlobalVar(args); vars = MergeVars(var, vars); }
                     else if (func == "Setpersistantvar") { commandVar var = await SetPersistantVarFromString(args); if (var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr; } else { vars = MergeVars(var, vars); } }
                     else if (func == "Getpersistantvar") { commandVar var = await GetPersistantVar(args); vars = MergeVars(var, vars); }
-
                     else if (func == "LowerVar") { vars = LowerVar(vars, args); }
                     else if (func == "UpperVar") { vars = UpperVar(vars, args); }
-
                     else if (func == "Playsound") { string location = args.Remove(args.Length - 1, 1).Remove(0, 1); if (!PlaySound(location, false, true)) { lr.error = true; lr.errorCode = "Sound Path Incorrect or not Found"; return lr; } else if (!check) { PlaySound(location); } }
                     else if (func == "Playlongsound") { string location = args.Remove(args.Length - 1, 1).Remove(0, 1); if (!PlaySound(location, true, true)) { lr.error = true; lr.errorCode = "Sound Path Incorrect or not Found"; return lr; } else if (!check) { PlaySound(location, true); } }
                     else if (func == "Modpoints") { try { int mod = int.Parse(args); if (!check) { SaveUserWithChange(data.user.name, mod); data.user.points += mod; } } catch { lr.error = true; lr.errorCode = $"pointChange Failed to Parse: '{args}'"; return lr; } }
                     else if (func == "ModpointsUserMulti") { try { int mod = int.Parse(args); if (!check) { mod = Program.GetUserMultipliedPoints(mod, data.user); SaveUserWithChange(data.user.name, mod, 0, 0, true); data.user.points += mod; } } catch { lr.error = true; lr.errorCode = $"multiPointChange Failed to Parse: '{args}'"; return lr; } }
                     else if (func == "ModpointsMulti") { try { int mod = int.Parse(args); if (!check) { mod = Program.GetMaxMultipliedPoints(mod, data.user); SaveUserWithChange(data.user.name, mod, 0, 0, true); data.user.points += mod; } } catch { lr.error = true; lr.errorCode = $"multiPointChange Failed to Parse: '{args}'"; return lr; } }
                     else if (func == "Globalkey") { if (check && !SendGlobalKey(args, true)) { lr.error = true; lr.errorCode = "Unknown Key"; return lr; } else { SendGlobalKey(args); } }
-                    else if (func == "Movemouse") { if (check && !MouseMove(args, true)) { lr.error = true; lr.errorCode = "Invalid Mouse Pos"; return lr; } else { MouseMove(args); } }
+                    else if (func == "Setmouse") { if (check && !MouseMove(args, true)) { lr.error = true; lr.errorCode = "Invalid Mouse Pos"; return lr; } else { MouseMove(args); } }
+                    else if (func == "Movemouse") { if (check && !ShiftMouse(args, true)) { lr.error = true; lr.errorCode = "Invalid Mouse Pos"; return lr; } else { ShiftMouse(args); } }
                     else if (func == "GetRandomNum") { commandVar var = GetRandomInRange(args, data.GetHashCode()); if (var == null) { lr.error = true; lr.errorCode = "Random Num Generation Failed"; return lr; } else { vars = MergeVars(var, vars); } }
                     else if (func == "GetActiveChat") { MergeVars(new commandVar("activeChat", Program.commandManager.GetActiveChatters().ToString()), vars); }
                     else if (func == "Modtts") { try { int mod = int.Parse(args); if (!check) { SaveUserWithChange(data.user.name, 0, 0, mod); } } catch { lr.error = true; lr.errorCode = $"ttsChange Failed to Parse: '{args}'"; return lr; } }
@@ -405,9 +409,9 @@ namespace TwitchBot
 
                             //also check num == num, num < num, num > num
                         }
-                        catch
+                        catch(Exception e)
                         {
-                            Program.Log($"IF ERROR: {vars.ToString()}", MessageType.Debug);
+                            Program.Log($"IF ERROR: {e}", MessageType.Debug);
                             lr.error = true; lr.errorCode = "If Statement Exeption"; return lr;
                         }
 
@@ -475,12 +479,35 @@ namespace TwitchBot
                             lr.error = true; lr.errorCode = $"While Statement Exeption: {e}"; return lr;
                         }
                     }
-                    else if (func == "End") { lr.canceled = true; return lr; }
+                    else if (func == "End" || func.StartsWith("_")) { lr.canceled = true; return lr; }
                     else
                     {
-                        lr.error = true; lr.errorCode = "Unknown Function";
-                        if (func == "Message") { lr.errorCode = "Message is Depricated, use 'Reply'"; }
-                        return lr;
+                        //Program.Log($"Unknown Function: {func}, checking against {funcSets.Count} functions", MessageType.Error);
+                        bool Ok = false;
+                        //check if there is a function with the name
+                        for(int f = 0; f < funcSets.Count; f++){
+                            //Program.Log($"Comparing {data.message.content.ToLower()} to {funcSets[f].scriptName.ToLower()}", MessageType.Debug);
+                            if(data.message.content.ToLower().StartsWith(funcSets[f].scriptName.ToLower())){
+                                for(int j = 0; j < funcSets[f].functions.Count; j++){
+                                    //Program.Log($"Comparing {funcSets[f].functions[j].name} to _{func}", MessageType.Debug);
+                                    if($"_{func}" == funcSets[f].functions[j].name){
+                                        //log the lines in the function
+                                        // Program.Log($"Running Function: {funcSets[f].functions[j].name}, with {funcSets[f].functions[j].lines.Length} lines", MessageType.Debug);
+                                        // for(int k = 0; k < funcSets[f].functions[j].lines.Length; k++){
+                                        //     Program.Log($"Line {k}: {funcSets[f].functions[j].lines[k]}", MessageType.Debug);
+                                        // }
+                                        LineReturn lineOut = await RunLines(funcSets[f].functions[j].lines.ToArray(), data, id, check, lr, vars.ToArray());
+                                        for (int k = 0; k < lineOut.vars.Length; k++) { vars = MergeVars(lineOut.vars[k], vars); }
+                                        Ok = true;
+                                    }
+                                }
+                            }
+                        }
+                        if(!Ok){
+                            lr.error = true; lr.errorCode = $"Unknown Function: {func}";
+                            if (func == "Message") { lr.errorCode = "Message is Depricated, use 'Reply'"; }
+                            return lr;
+                        }
                     }
                 }
                 catch{ lr.error = true; lr.errorCode = "ParseError"; return lr; }
@@ -496,10 +523,7 @@ namespace TwitchBot
             User data = await SaveSystem.GetUser(user);
             //add the change
             if(withMulti){ pChange = Program.GetMaxMultipliedPoints(pChange, data); }
-            else{
-                data.points += pChange;
-            }
-            
+            else{ data.points += pChange; }
             data.goldPoints += gpChange;
             data.ttsTokens += ttsChange;
             //save the user
@@ -507,7 +531,7 @@ namespace TwitchBot
         }
         int GetId(){
             //set int to a random number between 0 and 9999
-            int id = new Random().Next(0, 9999);
+            int id = new Random().Next(0, 99999);
             while(commandIds.Contains(id)){ id++; }
             return id;
         }
@@ -549,12 +573,8 @@ namespace TwitchBot
                     if(data.perams){
                         //Console.WriteLine($"Perams ={messageData.message.content}");
                         vars = new commandVar[1];
-                        try{
-                            vars[0] = new commandVar("perams", messageData.message.content.Remove(0, data.name.Length + 1));
-                        }
-                        catch{
-                            vars[0] = new commandVar("perams", "");
-                        }
+                        try{ vars[0] = new commandVar("perams", messageData.message.content.Remove(0, data.name.Length + 1)); }
+                        catch{ vars[0] = new commandVar("perams", ""); }
                     }
                     await RunLines(lines, messageData, id, false, null, vars);
                     if(commandIds.Contains(id)){ commandIds.Remove(id); }
@@ -873,6 +893,20 @@ namespace TwitchBot
             if (!testing){ input.Mouse.MoveMouseTo(X, Y); Program.Log($"Screen Size: {width}, {height}"); }
             return true;
         }
+        bool ShiftMouse(string shift, bool testing = false){
+            //does coords contain a comma
+            if(!shift.Contains(',')) { return false; }
+            //split the coords
+            string[] parts = shift.Split(',');
+            //check if there are 2 parts
+            if(parts.Length != 2) { return false; }
+            //parse the parts to ints
+            if(!int.TryParse(parts[0], out int X)) { return false; }
+            if(!int.TryParse(parts[1], out int Y)) { return false; }
+            //set the position of the mouse
+            if (!testing){ input.Mouse.MoveMouseBy(X, Y); }
+            return true;
+        }
         //function to send a global keystroke
         bool SendGlobalKey(string key, bool testing = false){
             try{
@@ -886,7 +920,7 @@ namespace TwitchBot
             catch { return false; }
         }
         //send key to another application by name
-        VirtualKeyCode GetKey(string key)
+        VirtualKeyCode GetKey(string key) //GET A REGULAR KEY
         {
             key = key.ToLower();
             if (key.StartsWith("numpad1")) { return VirtualKeyCode.NUMPAD1; }
@@ -921,7 +955,7 @@ namespace TwitchBot
             else if (key.StartsWith("c")) { return VirtualKeyCode.VK_C; }
             else if (key.StartsWith("d")) { return VirtualKeyCode.VK_D; }
             else if (key.StartsWith("e")) { return VirtualKeyCode.VK_E; }
-            else if (key.StartsWith("f")) { return VirtualKeyCode.VK_F; }
+            else if (key == "f") { return VirtualKeyCode.VK_F; }
             else if (key.StartsWith("g")) { return VirtualKeyCode.VK_G; }
             else if (key.StartsWith("h")) { return VirtualKeyCode.VK_H; }
             else if (key.StartsWith("i")) { return VirtualKeyCode.VK_I; }
@@ -951,11 +985,21 @@ namespace TwitchBot
             else if (key.StartsWith("6")) { return VirtualKeyCode.VK_6; }
             else if (key.StartsWith("7")) { return VirtualKeyCode.VK_7; }
             else if (key.StartsWith("8")) { return VirtualKeyCode.VK_8; }
-            else if (key.StartsWith("9")) { return VirtualKeyCode.VK_9; }
-            
+            else if (key == "f1") { return VirtualKeyCode.F1; }
+            else if (key == "f2") { return VirtualKeyCode.F2; }
+            else if (key == "f3") { return VirtualKeyCode.F3; }
+            else if (key == "f4") { return VirtualKeyCode.F4; }
+            else if (key == "f5") { return VirtualKeyCode.F5; }
+            else if (key == "f6") { return VirtualKeyCode.F6; }
+            else if (key == "f7") { return VirtualKeyCode.F7; }
+            else if (key == "f8") { return VirtualKeyCode.F8; }
+            else if (key == "f9") { return VirtualKeyCode.F9; }
+            else if (key == "f10") { return VirtualKeyCode.F10; }
+            else if (key == "f11") { return VirtualKeyCode.F11; }
+            else if (key == "f12") { return VirtualKeyCode.F12; }
             else return VirtualKeyCode.NONAME;
         }
-        char GetKeyChar(string key){
+        char GetKeyChar(string key){ //GET A GLOBAL KEY
             key = key.ToLower();
             if (key.StartsWith("numpad1")) { return (char)Keys.NumPad1; }
             else if (key.StartsWith("numpad2")) { return (char)Keys.NumPad2; }
@@ -1034,7 +1078,6 @@ namespace TwitchBot
             else{ sounds.Add(output); }
             return true;
         }
-
         public void StopAllSounds(){
             //stop all sounds
             //Console.WriteLine("Stopping all sounds");
@@ -1057,6 +1100,44 @@ namespace TwitchBot
         public CustomCommandData[] GetCustomCommands(){
             //get the custom commands
             return customCommands.ToArray();
+        }
+        FunctionData GetFunctions(string[] lines){
+            FunctionData data = new FunctionData();
+            //go through each line until a line that starts with "_" is found
+            string name = "";
+            bool gettingFunction = false;
+            int Sindex = -1;
+            List<string> functionLines = new List<string>();
+            for(int i = 0; i < lines.Length; i++){
+                if(lines[i].StartsWith("_")){
+                    if(gettingFunction){ 
+                        data.functions.Add(new Function(name, functionLines.ToArray())); functionLines.Clear(); 
+                        /* Program.Log($"Function {name} added", MessageType.Debug); */ 
+                    }
+                    name = lines[i]; gettingFunction = true; Sindex = i;
+                    //Program.Log($"Function {name} found", MessageType.Debug);
+                }
+                if(gettingFunction && i != Sindex){
+                    //is this line blank
+                    if(!lines[i].StartsWith(" ")){ 
+                        gettingFunction = false;
+                        //Program.Log(functionLines.ToArray().ToString());
+                        data.functions.Add(new Function(name, functionLines.ToArray())); functionLines.Clear();
+                        //Program.Log($"Function {name} added", MessageType.Debug);
+                    }
+                    else{ functionLines.Add(lines[i]); }
+                }
+            }
+            if(functionLines.Count > 0){ data.functions.Add(new Function(name, functionLines.ToArray())); functionLines.Clear(); /* Program.Log($"Function {name} added", MessageType.Debug); */ }
+            //log all the lines in each function
+            // for(int i = 0; i < data.functions.Count; i++){
+            //     Program.Log($"Function {data.functions[i].name}:", MessageType.Debug);
+            //     for(int j = 0; j < data.functions[i].lines.Length; j++){
+            //         Program.Log(data.functions[i].lines[j], MessageType.Debug);
+            //     }
+            // }
+            if(data.functions.Count > 0){ return data; }
+            else{ return null; }
         }
     }
 }
@@ -1095,4 +1176,17 @@ class LineReturn{
     public bool error, canceled;
     public string errorCode = "UnknownError";
     public commandVar[] vars;
+}
+
+class FunctionData{
+    public string scriptName;
+    public List<Function> functions = new List<Function>();
+}
+struct Function{
+    public string name;
+    public string[] lines;
+    public Function(string name, string[] lines){
+        this.name = name;
+        this.lines = lines;
+    }
 }

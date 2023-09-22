@@ -48,6 +48,8 @@ namespace TwitchBot
             cfg.autoChannelPadlock = false;
             cfg.allowModpadlock = false;
             cfg.lurkCommands = false;
+            cfg.noSteal = false;
+            cfg.fullScriptDebugging = false;
             string writeConfig = GetConfigString(cfg);
             //check if the config file exists
             string[] lines = SaveSystem.GetPlaintextFile("config.dat");
@@ -116,6 +118,8 @@ namespace TwitchBot
                         else if (key == "AutoPadlock") { cfg.autoChannelPadlock = Convert.ToBoolean(data); }
                         else if (key == "AllowModpadlock"){ cfg.allowModpadlock = Convert.ToBoolean(data);}
                         else if (key == "LurkCommands"){ cfg.lurkCommands = Convert.ToBoolean(data);}
+                        else if (key == "NoSteal"){ cfg.noSteal = Convert.ToBoolean(data);}
+                        else if (key == "FullScriptDebugging"){ cfg.fullScriptDebugging = Convert.ToBoolean(data);}
                     }
                     catch{ }
                 }
@@ -187,10 +191,12 @@ FilterChatMessages<{cfg.autoDeleteSpam}    / auto delete large non-english messa
 ---STARTUP---
 DontUseToken<{cfg.ignoreToken}    / dont request a Token, this disables some features, not reccomended [True | False] (default = False)
 NoFloor<{cfg.noFloor}    / Disable !Floor [True | False] (default = False)
+NoSteal<{cfg.noSteal}    / Disable !Steal [True | False] (default = False)
 AutoPadlock<{cfg.autoChannelPadlock}    / automatically gives the streamer a padlock [True | False] (default = False)
 NotifyOnJoin<{cfg.notifyOnJoin}    / notify the chat when the bot joins [True | False] (default = True)
 ---OTHER---
 LurkCommands<{cfg.lurkCommands}    / enable lurk and unlurk commands [True | False] (default = False)
+FullScriptDebugging<{cfg.fullScriptDebugging}    / enable full script debugging [True | False] (default = False)
 UploadFullCommandList<{cfg.uploadFullCommandList}    / upload the full command list for online viewing [True | False] (default = True)";
             return writeConfig;
         }
@@ -198,9 +204,9 @@ UploadFullCommandList<{cfg.uploadFullCommandList}    / upload the full command l
 }
 public class BotSystem{
     public string name, channel, prefix, currency, currencies, ttsVoice;
-    public bool warnIfBadSyntax, notifyOnJoin, notifyOnDropsRemaining, chatSayTTSCost, betaTTSFilter, noFloor,
+    public bool warnIfBadSyntax, notifyOnJoin, notifyOnDropsRemaining, chatSayTTSCost, betaTTSFilter, noFloor, noSteal,
     noMinigamesStack, uploadFullCommandList, ignoreToken, autoDeleteSpam, autoChannelPadlock, allowModpadlock,
-    lurkCommands;
+    lurkCommands, fullScriptDebugging;
     public int ttsCost, ttsPerToken, baseTTSTokens, pointsFromDrop, taxPercent, taxThreshold, dailyPoints,
     t1points, t2points, t3points, t1gold, t2gold, t3gold, minigamesCost, minigamesDuration, minigamesCooldown,
     dropTimer, dropPercent, giveTaxPercent, t1TTS, t2TTS, t3TTS;

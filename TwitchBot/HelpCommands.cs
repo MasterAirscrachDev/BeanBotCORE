@@ -14,6 +14,7 @@ namespace TwitchBot
         {
             string link = Program.config.uploadFullCommandList ? $". or get a full list here: github.com/MasterAirscrachDev/BeanBotFullCommands/blob/main/{Program.config.channel}%20Commands.md" : "",
             floor = Program.config.noFloor ? $"{Program.config.prefix}Floor has disabled by the streamer" : "Check the floor for any {Program.config.currencies} | {Program.config.prefix}floor",
+            steal = Program.config.noSteal ? "Stealing is disabled by the streamer" : $"Attempt to steal from another user, They will have 5 seconds to try {Program.config.prefix}catch you | {Program.config.prefix}steal | {Program.config.prefix}steal (@target)",
             tts = Program.config.ttsCost > -1 ? $"Get Text To Speech | {Program.config.prefix}tts (text) (costs 1 TTS Token per {Program.config.ttsPerToken} letters), | !buyTTS | !editTTS" : "TTS is disabled";
             helpList = $@"<The Help Command | Catagories: {Program.config.currencies}, Minigames, Events, About, TTS{link}
 {Program.config.currencies.ToLower()}<You Gain 1-3 {Program.config.currencies} Every Minute Your Active in Chat | Commands: {Program.config.prefix}{Program.config.currencies} {Program.config.prefix}Give{Program.config.currencies}, {Program.config.prefix}{Program.config.currency}Board, {Program.config.prefix}Free{Program.config.currencies}, {Program.config.prefix}Floor, {Program.config.prefix}Steal
@@ -36,7 +37,7 @@ prediction<View the current prediction
 lockprediction<[MOD]Lock the current prediction | {Program.config.prefix}Lockprediction
 endprediction<[MOD]Ends the current prediction | {Program.config.prefix}Endprediction (winner)
 vote<Vote for the prediction | {Program.config.prefix}vote (teamname) (bet)
-steal<Attempt to steal from another user, They will have 5 seconds to try {Program.config.prefix}catch you | {Program.config.prefix}steal | {Program.config.prefix}steal (@target)
+steal<{steal}
 catch<Stop another user from stealing from you
 buypadlock<buy a padlock to stop people stealing from you | {Program.config.prefix}buypadlock (tier[1-3]) 1: 10% {Program.config.currencies} for 10, 2: 20% {Program.config.currencies} for 20M, 3: 30% {Program.config.currencies} for 30M and notification on break
 padlock<view your padlock, use {Program.config.prefix}buypadlock to buy one
@@ -59,6 +60,7 @@ bot.commands<[STREAMER] Get a list of all the commands in console
 bot.config<[STREAMER] Opens the config folder for the bot
 bot.processes<[STREAMER] Get a list of all the processes the bot can detect in console
 bot.lock<[MOD] toggles the use of custom commands
+bot.check<[MOD] Checks the currency of a user | {Program.config.prefix}bot.check (@user)
 golden{Program.config.currency}blessing<activates the power of a golden {Program.config.currency}
 reload<[MOD] Reloads the config file and all custom commands | {Program.config.prefix}reload
 prestige<Prestige your {Program.config.currencies} | {Program.config.prefix}prestige (costs 1,000,000,000 {Program.config.currencies})
@@ -104,10 +106,12 @@ active<[WHISPER] All the chats your detected in | ACTIVE";
             await Task.Delay(5000);
             //Console.WriteLine("Updating GitHub Command List");
             string help = $"### Base Commands\nhelp{helpList.Replace("\n", "\n <br>")}\n### Custom Commands\n{customHelp.Replace("\n", "\n <br>")}";
-            string floor = Program.config.noFloor ? $"{Program.config.prefix}Floor Is Disabled" : $"{Program.config.prefix}Floor is enabled";
-            string tts = Program.config.ttsCost > -1 ? $"Get Text To Speech | {Program.config.prefix}tts (text) (costs {Program.config.ttsCost} {Program.config.currencies})" : "TTS is disabled";
+            string floor = Program.config.noFloor ? $"{Program.config.prefix}Floor Is Disabled <br> " : $"";
+            string steal = Program.config.noSteal ? $"{Program.config.prefix}Steal is disabled <br> " : $"";
+            string tts = Program.config.ttsCost > -1 ? $"Get Text To Speech | {Program.config.prefix}tts (text) ({Program.config.ttsPerToken} letters per token)" : "TTS is disabled";
             string help2 = $@"{tts} <br>
-{floor} <br>
+{floor}
+{steal}
 {Program.config.prefix}Openminigames costs {Program.config.minigamesCost} {Program.config.currencies} and lasts {Program.config.minigamesDuration} minutes <br>
 ## Custom Commands <br>";
             CustomCommandData[] commands = Program.customCommands.GetCustomCommands();
@@ -132,11 +136,17 @@ active<[WHISPER] All the chats your detected in | ACTIVE";
                         help2 += $"\n```js\n";
                     }
                 }
-                help2 += $"{Program.config.prefix}{commands[i].name} - {commands[i].description}";
-                if(commands[i].cost > 0) { help2 += $" | {commands[i].cost} {Program.config.currencies}"; }
+                help2 += $"{Program.config.prefix}{commands[i].name} - {commands[i].description.Replace("'", "׳")}";
+                if(commands[i].cost > 0) { help2 += $" | {commands[i].cost.ToString("N0")} {Program.config.currencies}"; }
                 help2 += "\n";
+
                 //Program.Log($"{commands[i].addPath} {Program.config.prefix}{commands[i].name}   {commands[i].description}", MessageType.Debug);
             }
+            help2 += "``` \n";
+            help2 += $"\n## Base Commands \n";
+            help2 += $"```js\n{Program.config.prefix}help";
+            help2 += helpList.Replace("'", "׳").Replace("\n", $"\n{Program.config.prefix}");
+            help2 += "\n```";
             try{
                 Program.twitchLibInterface.bot.UpdateGitHubCommandList(help2);
             }

@@ -68,6 +68,12 @@ namespace TwitchBot
             // AppData\\Roaming\\ReplayStudios\\TwitchBot
             System.Diagnostics.Process.Start("explorer.exe", Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\ReplayStudios\\BeanBot");
         }
+        public void OpenConfig()
+        {
+            //open the config file
+            // AppData\\Roaming\\ReplayStudios\\TwitchBot
+            System.Diagnostics.Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\ReplayStudios\\BeanBot\\config.dat");
+        }
         public void PlayAudioFromUrl(string url, float volume = 0.7f)
         {
             //check if there is a space in the url

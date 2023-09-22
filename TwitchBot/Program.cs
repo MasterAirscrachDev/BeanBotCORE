@@ -9,7 +9,7 @@ namespace TwitchBot
     {
         public static List<string> sendList = new List<string>();
         public static BotSystem config;
-        public static string version = "v1.3.2";
+        public static string version = "v1.3.3";
         public static EventSystem eventSystem;
         public static CommandManager commandManager;
         public static TwitchLibInterface twitchLibInterface;
@@ -24,8 +24,12 @@ namespace TwitchBot
             await RefreshConfig(); //get the config
             if(config == null){Log("Error: Config Failed To Load", MessageType.Error); await Task.Delay(-1);}
             else if(config.channel.ToLower() == "channelgoeshere"){
-                Log("Error: Config Failed To Load, Please Change The Channel Name", MessageType.Warning);
+                Log("Please change the Channel Name in the config to your twitch name", MessageType.Log);
+                Log("After you have changed it restart the bot", MessageType.Log);
+                Log("", MessageType.Log);
                 Log("If your name is channelgoeshere, please contact the developer", MessageType.Warning);
+                Utility u = new Utility();
+                u.OpenConfig(); //open the config
                 await Task.Delay(-1);
             }
             //The Order Of these matters a lot

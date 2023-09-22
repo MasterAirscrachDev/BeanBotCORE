@@ -394,7 +394,10 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
             catch(Exception e){
                 Program.Log($"Error updating banned users: {e.Message}", MessageType.Error);
                 await GetSavedToken();
+                GetBannedUsers();
+                return;
             }
+            Program.Log($"Updated banned users, {bannedUsers.Count} users are banned", MessageType.Success);
         }
 
         private void Client_OnNewSubscriber(object sender, OnNewSubscriberArgs e) { 
