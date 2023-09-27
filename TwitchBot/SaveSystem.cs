@@ -22,7 +22,7 @@ namespace TwitchBot
             {
                 //Console.WriteLine($"User {username} exists");
                 FileSuper saveSystem = new FileSuper("BeanBot", "ReplayStudios", false);
-                saveSystem.SetEncryption(true, SpecialDat.UserEnc);
+                saveSystem.SetEncryption(SpecialDat.UserEnc);
                 Save save = await saveSystem.LoadFile($"users\\{username}.dat");
                 user.name = save.GetString("displayName");
                 if (string.IsNullOrEmpty(user.name)) { user.name = username; }
@@ -215,7 +215,7 @@ namespace TwitchBot
         {
             //Console.WriteLine($"saving user: {user.name}, display name: {user.name}, points: {user.points}, gold points: {user.goldPoints}, multiplier: {user.multiplier}");
             FileSuper saveSystem = new FileSuper("BeanBot", "ReplayStudios", false);
-            saveSystem.SetEncryption(true, SpecialDat.UserEnc);
+            saveSystem.SetEncryption(SpecialDat.UserEnc);
             Save save = new Save();
             
             //clamp user points between 0 and 1B

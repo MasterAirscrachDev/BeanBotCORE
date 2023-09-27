@@ -490,7 +490,7 @@ namespace TwitchBot
         async Task SaveAuthKey(string authKey)
         {
             FileSuper fileSuper = new FileSuper("BeanBot", "ReplayStudios");
-            fileSuper.SetEncryption(true, SpecialDat.AuthEnc);
+            fileSuper.SetEncryption(SpecialDat.AuthEnc);
             Save save = new Save();
             save.SetString("AuthKey", authKey);
             await fileSuper.SaveFile("Auth.key", save);

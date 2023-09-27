@@ -2,6 +2,8 @@ fix channel title update
 
 blank lines in offsetlevel commands crash the bot
 
+fix the entire bot
+
 surl file
 
 .ogg support

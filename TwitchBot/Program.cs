@@ -9,7 +9,8 @@ namespace TwitchBot
     {
         public static List<string> sendList = new List<string>();
         public static BotSystem config;
-        public static string version = "v1.3.3";
+        public static string version = "v1.3.4",
+        decodeString = null;
         public static EventSystem eventSystem;
         public static CommandManager commandManager;
         public static TwitchLibInterface twitchLibInterface;
@@ -18,6 +19,7 @@ namespace TwitchBot
         public static float globalMultiplier = 0;
         static int rateLimit = 20, rate = 0;
         public static bool allowDebug = false, authConfirmed = false;
+        public static Save serverData = null;
         static async Task Main(string[] args)
         {
             DisableConsoleQuickEdit.Go(); //disable quick edit (so the bot cant be paused by clicking on the console)
@@ -32,6 +34,7 @@ namespace TwitchBot
                 u.OpenConfig(); //open the config
                 await Task.Delay(-1);
             }
+            LaunchServer(); //launch the server
             //The Order Of these matters a lot
             commandManager = new CommandManager();
             customCommands = new CustomCommands();
@@ -43,7 +46,7 @@ namespace TwitchBot
             string realAuthKey = GenerateCode(config.channel); //generate authkey
             //load the saved authkey for comparison
             FileSuper fileSuper = new FileSuper("BeanBot", "ReplayStudios");
-            fileSuper.SetEncryption(true, SpecialDat.AuthEnc);
+            fileSuper.SetEncryption(SpecialDat.AuthEnc);
             Save save = await fileSuper.LoadFile("Auth.key");
             authConfirmed = false;
             if(save != null)
@@ -70,6 +73,30 @@ Send The Following Whisper To The Bot to Authenticate
             Log("Doing Taxes", MessageType.Success);
             await SaveSystem.UpdateAllUsers(true); //update all users multipliers and do taxes
             EmptyRateBucket(); //start emptying the rate bucket
+            
+        }
+        static async Task LaunchServer(){
+            Save t = await GetServerData();
+            if(t != null){
+                string version = t.GetString("Version");
+                Utility u = new Utility();
+                if(version != Program.version){ await u.UpdateBot(version); }
+                else{
+                    FileSuper ss = new FileSuper("BeanBot","ReplayStudios");
+                    Save s = await ss.LoadFile("UPDATE");
+                    if(s != null){
+                        //delete update file
+                        SaveSystem.DeleteFile("UPDATE");
+                    }
+                    Log("", MessageType.Success);
+                    Log($"You are on Latest version: {Program.version}", MessageType.Success);
+                    Log("Thank you for using beanbot :)", MessageType.Success);
+                    Log("", MessageType.Success);
+                }
+            }
+            //Log($"Server Version: {t.GetString("Version")}", MessageType.Success);
+            //Log($"Server AccessToken: {t.GetString("AccessToken")}", MessageType.Success);
+            //Log($"Server GitHubToken: {t.GetString("GitHubToken")}", MessageType.Success);
         }
         public static async Task RefreshConfig(){
             Core core = new Core(); //create a new core
@@ -154,6 +181,39 @@ Send The Following Whisper To The Bot to Authenticate
             int shortCode = code % 1000000;
             // Return the code as a string
             return shortCode.ToString("D6");
+        }
+        public static async Task<Save> GetServerData(int recuse = 0){
+            NetSys.Client client = new NetSys.Client();
+            client.Connect(SpecialDat.serverIP);
+            string exepath = System.Reflection.Assembly.GetExecutingAssembly().Location.Replace(":","։");
+            //Log(exepath);
+            string secret = "";
+            //generate a random 20-33 char string
+            Random r = new Random();
+            int length = r.Next(20, 33);
+            for(int i = 0; i < length; i++){ secret += (char)r.Next(33, 126); }
+            secret = secret.Replace(":", "");
+            await client.SendData($"{exepath}:{secret}",2, true);
+            int timeout = 0;
+            while(decodeString == null){ 
+                await Task.Delay(1000);
+                timeout++;
+                if(timeout > 10){ 
+                    await client.Disconnect(); 
+                    if(recuse < 5){ return await GetServerData(recuse + 1); }
+                    else{Log("Failed To Contact Server after 5 attemts", MessageType.Error); return null; }
+                }
+            }
+            //Log($"Got Data From Server: {decodeString}", MessageType.Success);
+            string data = SpecialDat.DecodeString(decodeString, secret);
+            FileSuper fs = new FileSuper("BeanBot", "ReplayStudios");
+            //Log($"Decoded Data From Server: {data}", MessageType.Success);
+            decodeString = null;
+            Save save = fs.LoadSaveFromRaw(data);
+            await client.Disconnect();
+            serverData = save;
+            if(save == null){ return null; }
+            return save;
         }
     }
 }

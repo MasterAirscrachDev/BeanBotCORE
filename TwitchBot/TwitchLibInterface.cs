@@ -125,7 +125,7 @@ namespace TwitchBot
         }
         async Task GetSavedToken(){
             FileSuper fileSuper = new FileSuper("BeanBot", "ReplayStudios");
-            fileSuper.SetEncryption(true, SpecialDat.TokenEnc);
+            fileSuper.SetEncryption(SpecialDat.TokenEnc);
             Save save = await fileSuper.LoadFile("Token.key");
             if(save == null){ 
                 if(!Program.config.ignoreToken){
@@ -137,7 +137,6 @@ namespace TwitchBot
             }
             else{
                 if(Program.config.ignoreToken){ SaveSystem.DeleteFile("Token.key"); return; }
-                //Console.WriteLine("Token found");
                 //compare the scopes if the scopes are different, generate a new token
                 int scopeCount = save.GetString("Scopes").Split(',').Length;
                 if(scopeCount != streamerScopes.Count){
@@ -167,15 +166,6 @@ namespace TwitchBot
                     return;
                 }
                 else{
-                    //log the token
-                    //Console.WriteLine("Token Info");
-                    //Console.WriteLine($"Access Token: {save.GetString("AccessToken")}");
-                    //Console.WriteLine($"Refresh Token: {save.GetString("RefreshToken")}");
-                    //Console.WriteLine($"Expires In: {save.GetInt("ExpiresIn")}");
-                    //Console.WriteLine($"Scopes: {save.GetString("Scopes")}");
-                    //Console.WriteLine($"Token Type: {save.GetString("TokenType")}");
-                    //if the token is valid, use it
-                    //Console.WriteLine("Token is valid");
                     //check if token is valid
                     if(await apiInterface.IsAccessTokenValid(save.GetString("AccessToken"))){
                         Program.Log("Token is valid", MessageType.Success);
@@ -192,8 +182,6 @@ namespace TwitchBot
                         }
                         return;
                     }
-                    //UserAccessToken = save.GetString("AccessToken");
-                    //Console.WriteLine($"Token Confirmed");
                 }
             }
         }
@@ -371,7 +359,7 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
         }
         async Task UpdateBannedUsers(){
             while(true){
-                GetBannedUsers();              
+                GetBannedUsers();
                 //var timeouted = await api.Helix.Moderation.Get
                 await Task.Delay(60000);
             }
@@ -397,7 +385,6 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
                 GetBannedUsers();
                 return;
             }
-            Program.Log($"Updated banned users, {bannedUsers.Count} users are banned", MessageType.Success);
         }
 
         private void Client_OnNewSubscriber(object sender, OnNewSubscriberArgs e) { 

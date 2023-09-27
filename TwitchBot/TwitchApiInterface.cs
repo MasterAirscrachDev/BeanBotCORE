@@ -33,7 +33,6 @@ namespace TwitchBot
     {
         private const string RedirectUri = "http://localhost:3000";
         private static readonly HttpClient HttpClient = new HttpClient();
-
         GitHubConnector gitHubConnector = new GitHubConnector();
 
         public async Task<string> GetAccessToken(string code, bool bot = false)
@@ -67,7 +66,7 @@ namespace TwitchBot
             //Console.WriteLine($"Token Type: {tokenResponse.TokenType}");
 
             FileSuper fileSuper = new FileSuper("BeanBot", "ReplayStudios");
-            fileSuper.SetEncryption(true, SpecialDat.TokenEnc);
+            fileSuper.SetEncryption(SpecialDat.TokenEnc);
             Save save = new Save();
             save.SetString("AccessToken", tokenResponse.AccessToken);
             save.SetString("RefreshToken", tokenResponse.RefreshToken);
@@ -109,7 +108,7 @@ namespace TwitchBot
             //Console.WriteLine($"Token Type: {tokenResponse.TokenType}");
             //save this info
             FileSuper fileSuper = new FileSuper("BeanBot", "ReplayStudios");
-            fileSuper.SetEncryption(true, SpecialDat.TokenEnc);
+            fileSuper.SetEncryption(SpecialDat.TokenEnc);
             Save save = new Save();
             save.SetString("AccessToken", tokenResponse.AccessToken);
             save.SetString("RefreshToken", tokenResponse.RefreshToken);
@@ -152,10 +151,26 @@ namespace TwitchBot
             return null;
         }
         public async Task<string> GetBotToken(){
-            string token = await gitHubConnector.GetAccessToken();
-            if(await IsAccessTokenValid(token)){
-                return token;
+            if(Program.serverData != null){
+                if(await IsAccessTokenValid(Program.serverData.GetString("BotToken"))){
+                    return Program.serverData.GetString("BotToken");
+                }
+                string token = Program.serverData.GetString("AccessToken");
+                if(await IsAccessTokenValid(token)){
+                    return token;
+                }
             }
+            else{
+                await Task.Delay(15000);
+                if(Program.serverData != null){ return await GetBotToken();}
+                else{
+                    Save s = await Program.GetServerData();
+                    if(s != null){
+                        return await GetBotToken();
+                    }
+                }
+            }
+            
             //Console.BackgroundColor = ConsoleColor.Red;
             //Console.WriteLine("Bot Token Is Dead, if this persists longer than 10 minutes, please contact the developer");
             return null;
