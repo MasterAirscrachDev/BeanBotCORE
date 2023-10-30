@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using AsyncAwaitBestPractices;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TwitchBot
 {
@@ -26,6 +27,7 @@ namespace TwitchBot
             await RefreshConfig(); //get the config
             if(config == null){Log("Error: Config Failed To Load", MessageType.Error); await Task.Delay(-1);}
             else if(config.channel.ToLower() == "channelgoeshere"){
+                Log("SETUP 0/4", MessageType.Log);
                 Log("Please change the Channel Name in the config to your twitch name", MessageType.Log);
                 Log("After you have changed it restart the bot", MessageType.Log);
                 Log("", MessageType.Log);
@@ -56,13 +58,14 @@ namespace TwitchBot
                 if (authKey == realAuthKey) { authConfirmed = true; }
             }
             if(!authConfirmed){
+                Log("SETUP 1/4", MessageType.Log);
                 Log($@"Send Any Message in chat, then
 Send The Following Whisper To The Bot to Authenticate
 /w @AwesomeBean_BOT AUTH:{realAuthKey}
 ", MessageType.Debug);
                 await Task.Delay(-1);
             }
-            if(config.channel == "masterairscrach"){allowDebug = true;} //enable debugging for masterairscrach
+            if(SpecialDat.devs.Contains(config.channel)){allowDebug = true;} //enable debugging for masterairscrach
             twitchLibInterface.bot.AuthConfirmed(); //alert the botcode that the authkey is confirmed
             //GlobalKeyListener.ListenForSS(); //this causes errors atm
             await Task.Delay(-1); //wait forever

@@ -238,7 +238,7 @@ namespace TwitchBot
             //Program.Log(vars.ToString(), MessageType.Debug);
             while (i < maxlines){
                 try{
-                    if(string.IsNullOrEmpty(lines[i])){ i++; lr.line++; continue;}
+                    if(string.IsNullOrEmpty(lines[i]) || string.IsNullOrWhiteSpace(lines[i])){ i++; lr.line++; continue;}
                     string[] split = lines[i].Split('<');
 
                     string func = split[0], args = "";
@@ -486,16 +486,13 @@ namespace TwitchBot
                         bool Ok = false;
                         //check if there is a function with the name
                         for(int f = 0; f < funcSets.Count; f++){
+                            if(Ok){ break; }
                             //Program.Log($"Comparing {data.message.content.ToLower()} to {funcSets[f].scriptName.ToLower()}", MessageType.Debug);
                             if(data.message.content.ToLower().StartsWith(funcSets[f].scriptName.ToLower())){
                                 for(int j = 0; j < funcSets[f].functions.Count; j++){
+                                    if(Ok){ break; }
                                     //Program.Log($"Comparing {funcSets[f].functions[j].name} to _{func}", MessageType.Debug);
                                     if($"_{func}" == funcSets[f].functions[j].name){
-                                        //log the lines in the function
-                                        // Program.Log($"Running Function: {funcSets[f].functions[j].name}, with {funcSets[f].functions[j].lines.Length} lines", MessageType.Debug);
-                                        // for(int k = 0; k < funcSets[f].functions[j].lines.Length; k++){
-                                        //     Program.Log($"Line {k}: {funcSets[f].functions[j].lines[k]}", MessageType.Debug);
-                                        // }
                                         LineReturn lineOut = await RunLines(funcSets[f].functions[j].lines.ToArray(), data, id, check, lr, vars.ToArray());
                                         for (int k = 0; k < lineOut.vars.Length; k++) { vars = MergeVars(lineOut.vars[k], vars); }
                                         Ok = true;
@@ -660,11 +657,18 @@ namespace TwitchBot
             commandVar[] tvars = new commandVar[vars.Length + globalVars.Count];
             for(int i = 0; i < vars.Length; i++){ tvars[i] = vars[i]; }
             for(int i = 0; i < globalVars.Count; i++){ tvars[i + vars.Length] = globalVars[i]; }
-
-            for(int i = 0; i < tvars.Length; i++)
-            {
-                string getVar = $"%{tvars[i].name}%";
-                input = input.Replace(getVar, tvars[i].value);
+            bool active = true; 
+            int skipped;
+            while(active){
+                skipped = 0;
+                for(int i = 0; i < tvars.Length; i++)
+                {
+                    string getVar = $"%{tvars[i].name}%";
+                    if(input.Contains(getVar))
+                    { input = input.Replace(getVar, tvars[i].value); }
+                    else{ skipped++; }
+                }
+                if(skipped == tvars.Length){ active = false; }
             }
             return input;
         }
