@@ -74,9 +74,9 @@ Send The Following Whisper To The Bot to Authenticate
             Log("Clearing Users", MessageType.Success);
             await SaveSystem.ClearOldUsers(); //clear old users
             Log("Doing Taxes", MessageType.Success);
-            await SaveSystem.UpdateAllUsers(true); //update all users multipliers and do taxes
             EmptyRateBucket(); //start emptying the rate bucket
-            
+            await Task.Delay(10000);
+            await SaveSystem.UpdateAllUsers(true); //update all users multipliers and do taxes
         }
         static async Task LaunchServer(){
             Save t = await GetServerData();

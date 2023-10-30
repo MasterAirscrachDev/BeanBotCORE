@@ -151,8 +151,8 @@ namespace TwitchBot
         public static async Task UpdateAllUsers(bool doTax = false, bool retry = false){
             DateTime start = DateTime.Now;
             User[] users = await GetAllUsers();
-            List<string> followerNames = new List<string>();
-            List<UserSub> subs = new List<UserSub>();
+            List<string> followerNames;
+            List<UserSub> subs;
             int taxMoney = 0;
             try{
                 await Program.twitchLibInterface.bot.CheckToken();
@@ -201,6 +201,7 @@ namespace TwitchBot
                     changed = true; 
                 }
                 if(changed){
+                    Program.Log($"Changing {users[i].name} from {oldrank} to {followRank}", MessageType.Debug);
                     SaveUser(users[i]);
                 }
             }
@@ -265,12 +266,12 @@ public struct User{
     public User(string name, int points){
         this.name = name;
         this.points = points;
-        this.goldPoints = 0;
-        this.multiplier = 1;
-        this.TempMultiplier = 1;
-        this.ttsTokens = 0;
-        this.subTier = -1; //-1 = viewer, 0 = follower, 4 = prime, 1 = tier 1, 2 = tier 2, 3 = tier 3
-        this.dateSaved = DateTime.Now.ToBinary().ToString();
+        goldPoints = 0;
+        multiplier = 1;
+        TempMultiplier = 1;
+        ttsTokens = 0;
+        subTier = -1; //-1 = viewer, 0 = follower, 4 = prime, 1 = tier 1, 2 = tier 2, 3 = tier 3
+        dateSaved = DateTime.Now.ToBinary().ToString();
     }
 }
 struct TempMulti{
