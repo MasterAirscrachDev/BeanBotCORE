@@ -326,7 +326,6 @@ public class NetSys
     {
         try{ await stream.WriteAsync(payload, 0, payload.Length); }
         catch{ Log("Error sending payload"); }
-        
     }
     List<byte[]> SplitDataIntoPayloads(byte[] data)
     {

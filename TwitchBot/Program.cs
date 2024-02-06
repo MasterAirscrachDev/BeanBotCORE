@@ -10,31 +10,126 @@ namespace TwitchBot
     {
         public static List<string> sendList = new List<string>();
         public static BotSystem config;
-        public static string version = "v1.3.4",
+        public static string version = "v1.3.5",
         decodeString = null;
         public static EventSystem eventSystem;
         public static CommandManager commandManager;
         public static TwitchLibInterface twitchLibInterface;
         public static CustomCommands customCommands;
         public static HelpCommands helpSystem;
+        public static WebRenderer webRenderer;
         public static float globalMultiplier = 0;
         static int rateLimit = 20, rate = 0;
         public static bool allowDebug = false, authConfirmed = false;
         public static Save serverData = null;
         static async Task Main(string[] args)
         {
-            DisableConsoleQuickEdit.Go(); //disable quick edit (so the bot cant be paused by clicking on the console)
+            ToggleConsoleQuickEdit.NoEdit(); //disable quick edit (so the bot cant be paused by clicking on the console)
             await RefreshConfig(); //get the config
             if(config == null){Log("Error: Config Failed To Load", MessageType.Error); await Task.Delay(-1);}
             else if(config.channel.ToLower() == "channelgoeshere"){
-                Log("SETUP 0/4", MessageType.Log);
-                Log("Please change the Channel Name in the config to your twitch name", MessageType.Log);
-                Log("After you have changed it restart the bot", MessageType.Log);
-                Log("", MessageType.Log);
-                Log("If your name is channelgoeshere, please contact the developer", MessageType.Warning);
-                Utility u = new Utility();
-                u.OpenConfig(); //open the config
-                await Task.Delay(-1);
+                Core core = new Core(); //create a new core
+                Log("SETUP 0/6", MessageType.Log);
+                //Log("Please change the Channel Name in the config to your twitch name", MessageType.Log);
+                //Log("After you have changed it restart the bot", MessageType.Log);
+                //Log("", MessageType.Log);
+                //Log("If your name is channelgoeshere, please contact the developer", MessageType.Warning);
+                //Utility u = new Utility();
+                //u.OpenConfig(); //open the config
+                //await Task.Delay(-1);
+                ToggleConsoleQuickEdit.EnableEdit(); //disable quick edit (so the bot cant be paused by clicking on the console)
+                bool nameSet = false;
+                while (!nameSet){
+                    Log("Please Enter Your Twitch username (not caps sensitive)");
+                    Console.ResetColor();
+                    string name = Console.ReadLine();
+                    //check that name is at between 4 and 25 chars
+                    if(name.Length < 4 || name.Length > 25){ Log("Name must be between 4 and 25 chars", MessageType.Warning); continue; }
+                    else{
+                        //check that name is only letters and numbers
+                        bool valid = true;
+                        foreach(char c in name){
+                            if(!char.IsLetterOrDigit(c)){ valid = false; break; }
+                        }
+                        if(valid){
+                            bool sure = GetConsoleYN($"Is {name} correct?");
+                            if(sure){
+                                config.channel = name;
+                                nameSet = true;
+                            }
+                        }
+                    }
+                }
+                Log("SETUP 1/6", MessageType.Log);
+                bool prefixSet = false;
+                if(!GetConsoleYN($"Chat Prefix is {config.prefix}, keep this?")){
+                    while(!prefixSet){
+                        Log("Please Enter Your Desired Chat Prefix");
+                        Console.ResetColor();
+                        string prefix = Console.ReadLine();
+                        //check that prefix is at between 1 and 5 chars
+                        if(prefix.Length < 1 || prefix.Length > 5){ Log("Prefix must be between 1 and 5 chars", MessageType.Warning); continue; }
+                        else{
+                            //check that prefix is only letters and numbers
+                            bool sure = GetConsoleYN($"Is {prefix} correct?");
+                            if(sure){
+                                config.prefix = prefix;
+                                prefixSet = true;
+                            }
+                        }
+                    }
+                }
+                Log("SETUP 2/6", MessageType.Log);
+                bool currencyNameSet = false;
+                if(!GetConsoleYN($"Currency Name is {config.currency}/{config.currencies}, keep this?")){
+                    while(!currencyNameSet){
+                        Log("Please Enter Your Desired Currency Name (singular, eg: bean)");
+                        Console.ResetColor();
+                        string currency = Console.ReadLine();
+                        //check that currency is at between 1 and 5 chars
+                        if(currency.Length < 3 || currency.Length > 20){ Log("Currency must be between 1 and 20 chars", MessageType.Warning); continue; }
+                        else{
+                            //check that currency is only letters and numbers
+                            bool sure = GetConsoleYN($"Is {currency} correct?");
+                            if(sure){
+                                bool pluralSet = false;
+                                Log("Please Enter Your Desired Currency Name (plural, eg: beans)");
+                                Console.ResetColor();
+                                string currencies = Console.ReadLine();
+                                //check that currency is at between 2 and 20 chars
+                                if(currencies.Length < 3 || currencies.Length > 20){ Log("Currency must be between 2 and 20 chars", MessageType.Warning); continue; }
+                                else{
+                                    //check that currency is only letters and numbers
+                                    sure = GetConsoleYN($"Is {currency}/{currencies} correct?");
+                                    if(sure){
+                                        config.currency = currency;
+                                        config.currencies = currencies;
+                                        currencyNameSet = true;
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+                Log("SETUP 3/6", MessageType.Log);
+                bool useTTS = GetConsoleYN($"Enable Text To Speech?");
+                config.ttsCost = useTTS ? config.ttsCost : -1;
+                if(useTTS){ Log("Feel Free to customize the TTS to your liking anytime in the confg", MessageType.Log); }
+                else{
+                    Log("TTS Disabled, you can change this anytime in the config", MessageType.Log);
+                }
+                Log("SETUP 4/6", MessageType.Log);
+                Log("BeanBot allows the optional use of an online command list that will shows all your commands");
+                Log("You can see an example here: https://github.com/MasterAirscrachDev/BeanBotFullCommands/blob/main/masterairscrach%20Commands.md");
+                bool useCommands = GetConsoleYN($"Enable Online Command List?");
+                config.uploadFullCommandList = useCommands;
+                if(useCommands){ Log("Online Help enabled, disable anytime in the confg", MessageType.Log); }
+                else{
+                    Log("Online Help Disabled, you can change this anytime in the config", MessageType.Log);
+                }
+                ToggleConsoleQuickEdit.NoEdit(); //disable quick edit (so the bot cant be paused by clicking on the console)
+                await core.SaveSettings(config); //save the config
             }
             LaunchServer(); //launch the server
             //The Order Of these matters a lot
@@ -58,8 +153,8 @@ namespace TwitchBot
                 if (authKey == realAuthKey) { authConfirmed = true; }
             }
             if(!authConfirmed){
-                Log("SETUP 1/4", MessageType.Log);
-                Log($@"Send Any Message in chat, then
+                Log("SETUP 5/6", MessageType.Log);
+                Log($@"Send Any Message in your twitch chat, then
 Send The Following Whisper To The Bot to Authenticate
 /w @AwesomeBean_BOT AUTH:{realAuthKey}
 ", MessageType.Debug);
@@ -68,6 +163,12 @@ Send The Following Whisper To The Bot to Authenticate
             if(SpecialDat.devs.Contains(config.channel)){allowDebug = true;} //enable debugging for masterairscrach
             twitchLibInterface.bot.AuthConfirmed(); //alert the botcode that the authkey is confirmed
             //GlobalKeyListener.ListenForSS(); //this causes errors atm
+
+            Log("Starting WebRenderer", MessageType.Log);
+            webRenderer = new WebRenderer(); //create a new web renderer
+            webRenderer.StartRenderer(); //start the web renderer
+
+
             await Task.Delay(-1); //wait forever
         }
         static async Task Setup(){
@@ -75,8 +176,6 @@ Send The Following Whisper To The Bot to Authenticate
             await SaveSystem.ClearOldUsers(); //clear old users
             Log("Doing Taxes", MessageType.Success);
             EmptyRateBucket(); //start emptying the rate bucket
-            await Task.Delay(10000);
-            await SaveSystem.UpdateAllUsers(true); //update all users multipliers and do taxes
         }
         static async Task LaunchServer(){
             Save t = await GetServerData();
@@ -187,7 +286,8 @@ Send The Following Whisper To The Bot to Authenticate
         }
         public static async Task<Save> GetServerData(int recuse = 0){
             NetSys.Client client = new NetSys.Client();
-            client.Connect(SpecialDat.serverIP);
+            client.Connect(SpecialDat.GetServerIP(config.channel));
+            //client.Connect("192.168.0.50");
             string exepath = System.Reflection.Assembly.GetExecutingAssembly().Location.Replace(":","։");
             //Log(exepath);
             string secret = "";
@@ -217,6 +317,16 @@ Send The Following Whisper To The Bot to Authenticate
             serverData = save;
             if(save == null){ return null; }
             return save;
+        }
+        public static bool GetConsoleYN(string question){
+            Log($"{question} (y/n)", MessageType.Debug);
+            while(true){
+                Console.ResetColor();
+                string input = Console.ReadLine();
+                if(input.ToLower() == "y"){ return true; }
+                else if(input.ToLower() == "n"){ return false; }
+                else{ Log($"{question} (y/n)", MessageType.Warning); }
+            }
         }
     }
 }

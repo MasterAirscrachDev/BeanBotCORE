@@ -319,13 +319,13 @@ namespace TwitchBot
                 activePrediction = prediction;
                 //return a message
                 data.returnMessage = $"A Prediction Has Started Use !vote (teamname) (amount) to bet!";
+                Program.webRenderer.SetPrediction(prediction);
                 return data;
             }
             catch{
                 data.returnMessage = $"Error Starting Prediction!";
                 return data;
             }
-            
         }
         public ProcessData ViewPrediction(ProcessData data){
             //check if there is an active prediction
@@ -511,7 +511,7 @@ namespace TwitchBot
             }
         }
     }
-    class Prediction
+    public class Prediction
     {
         public string name;
         public bool locked;
@@ -525,7 +525,7 @@ namespace TwitchBot
         }
         public Prediction(string name) { this.name = name; locked = false; }
     }
-    class PredictionTeam
+    public class PredictionTeam
     {
         public string name;
         public PredictionTeam(string name) { this.name = name; }

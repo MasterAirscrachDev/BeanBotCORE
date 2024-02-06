@@ -1,5 +1,7 @@
 fix channel title update
 
+make sure inputs can pause logging
+
 blank lines in offsetlevel commands crash the bot
 
 fix the entire bot

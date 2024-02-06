@@ -27,7 +27,16 @@ namespace TwitchBot
         public async Task ProcessMessage(Message message)
         {
             //check if the message is from a bot
-            if (botsToIgnore.Contains(message.sender.ToLower()) || !Program.authConfirmed) { return; }
+            if(message.sender.ToLower() == message.channel && CheckMessage(message, "auth:", 0, false, 2)){
+                //get the authkey
+                string authKey = message.content.Split(':')[1];
+                string key = Program.GenerateCode(Program.config.channel);
+                //check if the key is valid
+                if(authKey != key){ Program.Log($"Wrong AuthKey, Use AUTH:{key}", MessageType.Warning); return; }
+                Program.Log($"AuthKey: {authKey}", MessageType.Success);
+                SaveAuthKey(authKey);
+            }
+            if (botsToIgnore.Contains(message.sender.ToLower()) || !Program.authConfirmed) { Program.Log("Not AuthCOnfirmd");  return; }
             GetPoints(message);
             //get the user from the savesystem getUser task
             ProcessData data = new ProcessData();
@@ -245,15 +254,6 @@ namespace TwitchBot
             }
             else if(message.sender.ToLower() == message.channel && CheckMessage(message, "bot.processes")){
                 ExeFocusChecker.ListAllApplications(); return;
-            }
-            else if(message.sender.ToLower() == message.channel && CheckMessage(message, "auth:", 0, false, 2)){
-                //get the authkey
-                string authKey = data.message.content.Split(':')[1];
-                string key = Program.GenerateCode(Program.config.channel);
-                //check if the key is valid
-                if(authKey != key){ Program.Log($"Wrong AuthKey, Use AUTH:{key}", MessageType.Warning); return; }
-                Program.Log($"AuthKey: {authKey}", MessageType.Success);
-                SaveAuthKey(authKey);
             }
             else if(message.sender.ToLower() == message.channel && CheckMessage(message, "key:", 0, false, 2)){
                 //remove the KEY: part

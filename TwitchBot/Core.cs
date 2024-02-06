@@ -120,6 +120,7 @@ namespace TwitchBot
                         else if (key == "LurkCommands"){ cfg.lurkCommands = Convert.ToBoolean(data);}
                         else if (key == "NoSteal"){ cfg.noSteal = Convert.ToBoolean(data);}
                         else if (key == "FullScriptDebugging"){ cfg.fullScriptDebugging = Convert.ToBoolean(data);}
+                        else if (key == "DontUseToken"){ cfg.ignoreToken = Convert.ToBoolean(data);}
                     }
                     catch{ }
                 }
@@ -128,15 +129,20 @@ namespace TwitchBot
             {
                 //the file doesnt exist, create it
                 await SaveSystem.CreatePlaintextFile("config.dat", writeConfig);
-                string dir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                Process.Start($"{dir}\\ReplayStudios\\TwitchBot\\config.dat");
-                Console.WriteLine("Configure The Config File Then Restart The Bot");
-                await Task.Delay(-1);
+                //string fPath = $"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\\ReplayStudios\\BeanBot\\config.dat";
+                //launch the file at fPAth in the default text editor
+                //Process.Start("notepad.exe", fPath);
+                //Console.WriteLine("Configure The Config File Then Restart The Bot");
+                //await Task.Delay(-1);
             }
             //update the config file with any new values
             writeConfig = GetConfigString(cfg);
             await SaveSystem.CreatePlaintextFile("config.dat", writeConfig);
             return cfg;
+        }
+        public async Task SaveSettings(BotSystem cfg){
+            string writeConfig = GetConfigString(cfg);
+            await SaveSystem.CreatePlaintextFile("config.dat", writeConfig);
         }
         string GetConfigString(BotSystem cfg){
             string writeConfig = $@"---CORE---

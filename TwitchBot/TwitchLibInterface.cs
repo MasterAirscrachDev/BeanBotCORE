@@ -85,6 +85,7 @@ namespace TwitchBot
             await RefreshBotToken();
             MinTicker();
             UpdateBannedUsers();
+            await SaveSystem.UpdateAllUsers(true); //update all users multipliers and do taxes
         }
         public void AuthConfirmed(){ doChecks = true; }
         public async Task RefreshBotToken(){
@@ -130,6 +131,11 @@ namespace TwitchBot
             if(save == null){ 
                 if(!Program.config.ignoreToken){
                     Program.Log("Token not found, generating new token", MessageType.Warning);
+                    Program.Log("SETUP 6/6 (OPTIONAL BUT RECCOMENDED)\n\n");
+                    Program.Log($"To utilise all the features of the bot connect your twitch outh");
+                    ToggleConsoleQuickEdit.EnableEdit();
+                    bool useAUTH = Program.GetConsoleYN("Use Twitch Outh?");
+                    if(!useAUTH){ Program.config.ignoreToken = true; Core c = new Core(); c.SaveSettings(Program.config); return; }
                     SendConsoleAuthMessage();
                     GetAuthURL();
                     return;
@@ -193,7 +199,6 @@ By agreeing you give the bot the ablity to do the following
 
 --Check if the bot has moderator status in your channel--
 This Allows the bot to do anti spam, and correctly set the RateLimit
-
 
 --Read The Subscribers of your channel--
 This will correctly update and remove user multipliers
@@ -432,6 +437,7 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
             //check if we are mod in the channel
             try{
                 Console.BackgroundColor = ConsoleColor.Black;
+                if (Program.config.ignoreToken) { Program.Log("Cannot check Mod without User Access Token, Defaulting to 20", MessageType.Warning); return; }
                 Program.Log("Checking if bot is mod");
                 if(UserAccessToken == null) {while(UserAccessToken == null){ await Task.Delay(100); } }
                 Program.Log("Bot has User access token", MessageType.Success);

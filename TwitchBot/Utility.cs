@@ -2,7 +2,6 @@ using System;
 using NAudio.Wave;
 using NAudio.Vorbis;
 using System.Net;
-using System.Media;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -66,13 +65,14 @@ namespace TwitchBot
         {
             //open the config folder
             // AppData\\Roaming\\ReplayStudios\\TwitchBot
-            System.Diagnostics.Process.Start("explorer.exe", Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\ReplayStudios\\BeanBot");
+            Process.Start("explorer.exe", Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\ReplayStudios\\BeanBot");
         }
         public void OpenConfig()
         {
             //open the config file
             // AppData\\Roaming\\ReplayStudios\\TwitchBot
-            System.Diagnostics.Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\ReplayStudios\\BeanBot\\config.dat");
+            Process.Start("notepad.exe", Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\ReplayStudios\\BeanBot\\config.dat");
+            //Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\ReplayStudios\\BeanBot\\config.dat");
         }
         public void PlayAudioFromUrl(string url, float volume = 0.7f)
         {
@@ -185,8 +185,7 @@ namespace TwitchBot
             }
         }
     }
-
-    static class DisableConsoleQuickEdit {
+    static class ToggleConsoleQuickEdit {
         const uint ENABLE_QUICK_EDIT = 0x0040;
         // STD_INPUT_HANDLE (DWORD): -10 is the standard input device.
         const int STD_INPUT_HANDLE = -10;
@@ -196,7 +195,7 @@ namespace TwitchBot
         static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
         [DllImport("kernel32.dll")]
         static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
-        internal static bool Go() {
+        internal static bool NoEdit() {
 
             IntPtr consoleHandle = GetStdHandle(STD_INPUT_HANDLE);
 
@@ -208,6 +207,25 @@ namespace TwitchBot
             }
             // Clear the quick edit bit in the mode flags
             consoleMode &= ~ENABLE_QUICK_EDIT;
+            // set the new mode
+            if (!SetConsoleMode(consoleHandle, consoleMode)) {
+                // ERROR: Unable to set console mode
+                return false;
+            }
+            return true;
+        }
+        internal static bool EnableEdit() {
+
+            IntPtr consoleHandle = GetStdHandle(STD_INPUT_HANDLE);
+
+            // get current console mode
+            uint consoleMode;
+            if (!GetConsoleMode(consoleHandle, out consoleMode)) {
+                // ERROR: Unable to get console mode.
+                return false;
+            }
+            // Clear the quick edit bit in the mode flags
+            consoleMode |= ENABLE_QUICK_EDIT;
             // set the new mode
             if (!SetConsoleMode(consoleHandle, consoleMode)) {
                 // ERROR: Unable to set console mode

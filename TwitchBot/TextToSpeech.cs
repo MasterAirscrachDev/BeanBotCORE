@@ -200,21 +200,6 @@ namespace TwitchBot
             Program.Log("TTS Filter Passed", MessageType.Success);
             return true;
         }
-        bool IsJibberish(string text, float threshold = 0.5f)
-        {
-            // Remove punctuation and whitespace
-            var cleanedText = new string(text.Where(c => Char.IsLetter(c)).ToArray()).ToLower();
-
-            // Count character occurrences
-            var charCounts = cleanedText.GroupBy(c => c).ToDictionary(g => g.Key, g => g.Count());
-
-            // Calculate the ratio of unique characters to the total characters
-            float uniquenessRatio = charCounts.Count / cleanedText.Length;
-
-            // Check if the uniqueness ratio is below the threshold
-            Program.Log($"Uniqueness: {uniquenessRatio * 100}%", MessageType.Debug);
-            return uniquenessRatio < threshold;
-        }
         public void ListVoices()
         {
             Program.Log("Listing voices", MessageType.Debug);

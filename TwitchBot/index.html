@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+    <script>
+        setTimeout(function(){location.reload()},3000);
+    </script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .bar-container {
+            position: relative;
+        }
+
+        .bar {
+            height: 30px;
+            background: linear-gradient(to right, rgb(211, 109, 213) 74%, rgb(75, 75, 223) 75%);
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .percentage {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: bold;
+            width: 50%;
+            text-align: center;
+        }
+
+        .percentage.left {
+            left: 0;
+            padding-left: 3%;
+            text-align: left;
+        }
+
+        .percentage.right {
+            right: 0;
+            padding-right: 3%;
+            text-align: right;
+        }
+
+        .team-name {
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+</body>
+</html>

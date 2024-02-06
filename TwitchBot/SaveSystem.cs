@@ -136,6 +136,7 @@ namespace TwitchBot
         {
             //DateTime start = DateTime.Now;
             string[] names = GetAllFilesInFolder("users");
+            if(names == null || names.Length == 0) { return null; }
             //get just the name of the file ignoreing location and extention
             int fTrim = $"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\\ReplayStudios\\BeanBot\\users\\".Length;
             User[] users = new User[names.Length];
@@ -153,7 +154,7 @@ namespace TwitchBot
             User[] users = await GetAllUsers();
             List<string> followerNames;
             List<UserSub> subs;
-            int taxMoney = 0;
+            int taxMoney = 0, followCount = 0, subCount = 0;
             try{
                 await Program.twitchLibInterface.bot.CheckToken();
                 followerNames = await Program.twitchLibInterface.bot.GetFollowers();
@@ -178,6 +179,7 @@ namespace TwitchBot
                     for(int j = 0; j < subs.Count; j++){
                         if(subs[j].username.ToLower() == users[i].name.ToLower()){
                             followRank = subs[j].plan;
+                            subCount++;
                             break;
                         }
                     }
@@ -188,6 +190,7 @@ namespace TwitchBot
                     for(int j = 0; j < followerNames.Count; j++){
                         if(followerNames[j].ToLower() == users[i].name.ToLower()){
                             followRank = 0;
+                            followCount++;
                             break;
                         }
                     }
@@ -201,7 +204,7 @@ namespace TwitchBot
                     changed = true; 
                 }
                 if(changed){
-                    Program.Log($"Changing {users[i].name} from {oldrank} to {followRank}", MessageType.Debug);
+                    //Program.Log($"Changing {users[i].name} from {oldrank} to {followRank}", MessageType.Debug);
                     SaveUser(users[i]);
                 }
             }
@@ -210,6 +213,7 @@ namespace TwitchBot
                 bot.points += (int)Math.Round(taxMoney * 0.1f);
                 SaveUser(bot);
             }
+            Program.Log($"Active Followers: {followCount}, Active Subs: {subCount}");
             Program.Log($"Updated {users.Length} users in {DateTime.Now.Subtract(start).TotalSeconds}s");
         }
         public static async Task SaveUser(User user)
