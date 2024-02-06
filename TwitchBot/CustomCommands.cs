@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using NAudio;
 using System.Net;
 using NAudio.Wave;
+using System.Reflection.Emit;
 
 namespace TwitchBot
 {
@@ -270,6 +271,9 @@ namespace TwitchBot
                     else if (func == "Log") { if (!check) { Program.Log($"SCRIPT LOG: {args}", MessageType.Debug); } }
                     else if (func == "fLog") { Program.Log($"SCRIPT fLOG: {args}", MessageType.Debug); }
                     else if (func == "Setvar") { commandVar var = SetVarFromString(args); if (var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr; } else { vars = MergeVars(var, vars); } }
+                    else if (func == "AddQueue") { commandVar var = AddToOrCreateQueueFromString(args, vars.ToArray()); if (var == null) { lr.error = true; lr.errorCode = "Queue Generation Failed"; return lr; } else { vars = MergeVars(var, vars); } }
+                    else if (func == "ModQueue"){ commandVar var = ModifyQueueAtIndexFromString(args, vars.ToArray()); if (var == null) { lr.error = true; lr.errorCode = "Queue Modification Failed"; return lr; } else { vars = MergeVars(var, vars); } }
+                    else if (func == "DelQueue"){ commandVar var = RemoveOrDeleteQueueFromString(args, vars.ToArray()); if (var == null) { lr.error = true; lr.errorCode = "Queue Destruction Failed"; return lr; } else { vars = MergeVars(var, vars); } }
                     else if (func == "Setglobalvar") { commandVar var = SetGlobalVarFromString(args); if (var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr; } else { vars = MergeVars(var, vars); } }
                     else if (func == "Getglobalvar") { commandVar var = GetGlobalVar(args); vars = MergeVars(var, vars); }
                     else if (func == "Setpersistantvar") { commandVar var = await SetPersistantVarFromString(args); if (var == null) { lr.error = true; lr.errorCode = "Variable Generation Failed"; return lr; } else { vars = MergeVars(var, vars); } }
@@ -290,7 +294,7 @@ namespace TwitchBot
                     else if (func == "Modgold") { try { int mod = int.Parse(args); if (!check) { SaveUserWithChange(data.user.name, 0, mod); } } catch { lr.error = true; lr.errorCode = $"goldChange Failed to Parse: '{args}'"; return lr; } }
                     else if (func == "Immortalize") { id = -1; }
                     else if (func == "AddGlobalMulti") { try { split = args.Split(','); float multi = float.Parse(split[0]); int duration = int.Parse(split[1]); if (!check) { Program.TempMulti(multi, duration); } } catch { lr.error = true; lr.errorCode = $"AddGlobalMulti Failed to Parse: '{args}'"; return lr; } }
-                    else if (func == "#") { }
+                    else if (func == "#") { }//Im litewarlly hidding the gwiddy rn
                     else if (func == "Loop")
                     {
                         //get the number of loops
@@ -520,7 +524,7 @@ namespace TwitchBot
             User data = await SaveSystem.GetUser(user);
             //add the change
             if(withMulti){ pChange = Program.GetMaxMultipliedPoints(pChange, data); }
-            else{ data.points += pChange; }
+            data.points += pChange;
             data.goldPoints += gpChange;
             data.ttsTokens += ttsChange;
             //save the user
@@ -637,28 +641,33 @@ namespace TwitchBot
             }
             else { return null; }
         }
-
         bool IsDay(string day){
-            switch(day.ToLower()){
-                case "monday": return DateTime.Now.DayOfWeek == DayOfWeek.Monday;
-                case "tuesday": return DateTime.Now.DayOfWeek == DayOfWeek.Tuesday;
-                case "wednesday": return DateTime.Now.DayOfWeek == DayOfWeek.Wednesday;
-                case "thursday": return DateTime.Now.DayOfWeek == DayOfWeek.Thursday;
-                case "friday": return DateTime.Now.DayOfWeek == DayOfWeek.Friday;
-                case "saturday": return DateTime.Now.DayOfWeek == DayOfWeek.Saturday;
-                case "sunday": return DateTime.Now.DayOfWeek == DayOfWeek.Sunday;
-                default: return false;
-            }
+            return day.ToLower() == DateTime.Now.DayOfWeek.ToString().ToLower();
         }
-        
-        string GetVars(commandVar[] vars, string input)
-        {
+        string GetVars(commandVar[] vars, string input){ //this function is horrible but pcs are really fast
             //add global vars to the vars
-            commandVar[] tvars = new commandVar[vars.Length + globalVars.Count];
-            for(int i = 0; i < vars.Length; i++){ tvars[i] = vars[i]; }
-            for(int i = 0; i < globalVars.Count; i++){ tvars[i + vars.Length] = globalVars[i]; }
+            List<commandVar> combVars = new List<commandVar>();
+            combVars.AddRange(vars);
+            combVars.AddRange(globalVars);
+            //convert any QUEUE: vars to individual vars
+            for(int i = 0; i < combVars.Count; i++){
+                if(combVars[i].name.StartsWith("QUEUE:")){
+                    List<commandVar> newVars = new List<commandVar>();
+                    string[] queue = combVars[i].value.Split('~');
+                    for(int j = 0; j < queue.Length; j++){
+                        newVars.Add(new commandVar($"{combVars[i].name}[{j}]", queue[j]));
+                    }
+                    newVars.Add(new commandVar($"{combVars[i].name}[L]", queue.Length.ToString()));
+                    combVars.RemoveAt(i);
+                    combVars.AddRange(newVars);
+                }
+            }
+            commandVar[] tvars = combVars.ToArray();
+            combVars = null;
+
             bool active = true; 
             int skipped;
+
             while(active){
                 skipped = 0;
                 for(int i = 0; i < tvars.Length; i++)
@@ -686,6 +695,104 @@ namespace TwitchBot
             //Console.WriteLine("var set successfully");
             return new commandVar(parts[0], parts[1]);
         }
+        commandVar AddToOrCreateQueueFromString(string str, commandVar[] vars){
+            //massage should be in the format of "name<value"
+            //split the string on <
+            string[] parts = str.Split('<');
+            //check if there is 2 or more parts
+            if (parts.Length < 2) { return null; }
+            //check if the name is valid
+            if (parts[0].Length < 1) { return null; }
+            //check if the value is valid
+            if (parts[1].Length < 1) { return null; }
+            //return the var
+            //go through the vars and check if the name exists
+            string find = "QUEUE:" + parts[0];
+            for(int i = 0; i < vars.Length; i++){
+                if(vars[i].name == find){
+                    //add the value to the queue
+                    vars[i].value += $"~{parts[1]}";
+                    return vars[i];
+                }
+            }
+            //create the queue
+            return new commandVar(find, parts[1]);
+        }
+        commandVar ModifyQueueAtIndexFromString(string str, commandVar[] vars){
+            //message should be in the format of "name[index]=value"
+            //split the string on <
+            string[] parts = str.Split('=');
+            //check if there is 2 or more parts
+            if (parts.Length < 2) { return null; }
+            //check if the name is valid
+            if (parts[0].Length < 1 || !parts[0].Contains(']')) { return null; }
+            //check if the value is valid
+            if (parts[1].Length < 1) { return null; }
+            //split the name on [
+            string[] nameSplit = parts[0].Split('[');
+            //check if there are 2 parts
+            if(nameSplit.Length != 2){ return null; }
+            //check if the index is valid
+            int index = -1;
+            try{ index = int.Parse(nameSplit[1].Remove(nameSplit[1].Length - 1, 1)); }
+            catch{ return null; }
+            if(index < 0){ return null; }
+            //return the var
+            //go through the vars and check if the name exists
+            string find = "QUEUE:" + nameSplit[0];
+            for(int i = 0; i < vars.Length; i++){
+                if(vars[i].name == find){
+                    //add the value to the queue
+                    string[] queue = vars[i].value.Split('~');
+                    if(index < 0 || index >= queue.Length){ return null; } //we have to check here as we dont know queue length until we split
+                    queue[index] = parts[1];
+                    string newValue = "";
+                    for(int j = 0; j < queue.Length; j++){
+
+                        newValue += $"~{queue[j]}";
+                    }
+                    if(newValue.Length > 0){ newValue = newValue.Remove(0, 1); } //remove the first ~
+                    return new commandVar(find, newValue);
+                }
+            }
+            return null;
+        }
+        commandVar RemoveOrDeleteQueueFromString(string str, commandVar[] vars){
+            //massage should be in the format of "name[indexOfValueToDelete]"
+            //split the string on <
+            string[] parts = str.Split('[');
+            //check if there is 2 or more parts
+            if (parts.Length < 2) { return null; }
+            //check if the name is valid
+            if (parts[0].Length < 1) { return null; }
+            //check if the value is valid
+            if (parts[1].Length < 1) { return null; }
+            int index = -1;
+            try{ index = int.Parse(parts[1].Remove(1)); }
+            catch{ return null; }
+            //return the var
+            //go through the vars and check if the name exists
+            string find = "QUEUE:" + parts[0];
+            for(int i = 0; i < vars.Length; i++){
+                if(vars[i].name == find){
+                    //remove the value from the queue
+                    string[] queue = vars[i].value.Split('~');
+                    if(index < 0 || index >= queue.Length){ return null; } //we have to check here as we dont know queue length until we split
+                    string newValue = "";
+                    for(int j = 0; j < queue.Length; j++){
+                        if(j != index){ newValue += $"~{queue[j]}"; }
+                    }
+                    if(newValue.Length > 0){ newValue = newValue.Remove(0, 1); } //remove the first ~
+                    else{
+                        //the queue is empty so delete it
+                        newValue = "";
+                    }
+                    return new commandVar(find, newValue);
+                }
+            }
+            return null;
+        }
+
         commandVar SetGlobalVarFromString(string str){
             //massage should be in the format of "name=value"
             //split the string on =
