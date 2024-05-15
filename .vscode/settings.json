@@ -1,3 +1,7 @@
 {
-    "dotnet.defaultSolution": "TwitchBot.sln"
+    "dotnet.defaultSolution": "TwitchBot.sln",
+    "workbench.colorCustomizations": {
+        "minimap.background": "#00000000",
+        "scrollbar.shadow": "#00000000"
+    }
 }

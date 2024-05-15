@@ -26,6 +26,7 @@ namespace TwitchBot
         {
             ToggleConsoleQuickEdit.NoEdit(); //disable quick edit (so the bot cant be paused by clicking on the console)
             await RefreshConfig(); //get the config
+            webRenderer = new WebRenderer(); //create a new web renderer
             if(config == null){Log("Error: Config Failed To Load", MessageType.Error); await Task.Delay(-1);}
             else if(config.channel.ToLower() == "channelgoeshere"){
                 Core core = new Core(); //create a new core
@@ -125,9 +126,7 @@ namespace TwitchBot
                 bool useCommands = GetConsoleYN($"Enable Online Command List?");
                 config.uploadFullCommandList = useCommands;
                 if(useCommands){ Log("Online Help enabled, disable anytime in the confg", MessageType.Log); }
-                else{
-                    Log("Online Help Disabled, you can change this anytime in the config", MessageType.Log);
-                }
+                else{ Log("Online Help Disabled, you can change this anytime in the config", MessageType.Log); }
                 ToggleConsoleQuickEdit.NoEdit(); //disable quick edit (so the bot cant be paused by clicking on the console)
                 await core.SaveSettings(config); //save the config
             }
@@ -155,9 +154,8 @@ namespace TwitchBot
             if(!authConfirmed){
                 Log("SETUP 5/6", MessageType.Log);
                 Log($@"Send Any Message in your twitch chat, then
-Send The Following Whisper To The Bot to Authenticate
-/w @AwesomeBean_BOT AUTH:{realAuthKey}
-", MessageType.Debug);
+Send The Following Whisper To The Bot to Authenticate: 
+AUTH:{realAuthKey}", MessageType.Debug);
                 await Task.Delay(-1);
             }
             if(SpecialDat.devs.Contains(config.channel)){allowDebug = true;} //enable debugging for masterairscrach
@@ -165,7 +163,7 @@ Send The Following Whisper To The Bot to Authenticate
             //GlobalKeyListener.ListenForSS(); //this causes errors atm
 
             Log("Starting WebRenderer", MessageType.Log);
-            webRenderer = new WebRenderer(); //create a new web renderer
+            
             webRenderer.StartRenderer(); //start the web renderer
 
 
@@ -327,6 +325,9 @@ Send The Following Whisper To The Bot to Authenticate
                 else if(input.ToLower() == "n"){ return false; }
                 else{ Log($"{question} (y/n)", MessageType.Warning); }
             }
+        }
+        public static void StartUserAuthListener(){
+            webRenderer.InterceptUserKey();
         }
     }
 }

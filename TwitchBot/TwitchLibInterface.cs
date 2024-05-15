@@ -136,6 +136,7 @@ namespace TwitchBot
                     ToggleConsoleQuickEdit.EnableEdit();
                     bool useAUTH = Program.GetConsoleYN("Use Twitch Outh?");
                     if(!useAUTH){ Program.config.ignoreToken = true; Core c = new Core(); c.SaveSettings(Program.config); return; }
+                    Program.StartUserAuthListener();
                     SendConsoleAuthMessage();
                     GetAuthURL();
                     return;
@@ -209,7 +210,7 @@ This allows the bot to change the title and category of your stream
 If You agree to these terms Click Accept and Then send the following command followed by the website url (The text at the top)
 If The website doesnt load thats fine
 Send any message in chat to link the bot, then
-Send This In Your Chat: /w AwesomeBean_BOT KEY:put url here (example: KEY:http://localhost:3000/)");
+Send This In Your Chat: /w AwesomeBean_BOT KEY:put url here (example: KEY:http://localhost:3007/)");
         }
         void GetAuthURL(){ GetAuthUrl(streamerScopes); }
         public void GetBotAuthURL(){ GetAuthUrl(mainScopes); }

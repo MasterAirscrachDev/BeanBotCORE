@@ -81,6 +81,44 @@ namespace TwitchBot
             }
             await Task.CompletedTask;
         }
+        public async Task InterceptUserKey()
+        {
+            // Specify the URL where your site will be hosted (e.g., http://localhost:8080)
+            string url = "http://localhost:3007/";
+
+            using (HttpListener listener = new HttpListener())
+            {
+                listener.Prefixes.Add(url);
+                listener.Start();
+                //Console.WriteLine($"Listening on {url}");
+                while (true)
+                {
+                    // Wait for a request to come in
+                    HttpListenerContext context = listener.GetContext();
+
+                    // Process the request
+                    HttpListenerRequest request = context.Request;
+
+                    // Read the request body
+                    using (StreamReader reader = new StreamReader(request.InputStream))
+                    {
+                        string requestBody = reader.ReadToEnd();
+                        Console.WriteLine("Received request body: " + requestBody);
+                        // Here you can parse the request body to extract the auth key
+                        // and perform any additional processing as needed
+                    }
+
+                    // Send a response (optional)
+                    HttpListenerResponse response = context.Response;
+                    string responseString = "User Authenticated\nYou can close this window now.";
+                    byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
+                    response.ContentLength64 = buffer.Length;
+                    response.OutputStream.Write(buffer, 0, buffer.Length);
+                    response.Close();
+                }
+            }
+            await Task.CompletedTask;
+        }
         public void SetPrediction(Prediction prediction){
             if(prediction == null){
                 RemoveElement("prediction");
