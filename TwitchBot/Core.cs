@@ -50,6 +50,7 @@ namespace TwitchBot
             cfg.lurkCommands = false;
             cfg.noSteal = false;
             cfg.fullScriptDebugging = false;
+            cfg.allMessagesTTS = false;
             string writeConfig = GetConfigString(cfg);
             //check if the config file exists
             string[] lines = SaveSystem.GetPlaintextFile("config.dat");
@@ -121,6 +122,7 @@ namespace TwitchBot
                         else if (key == "NoSteal"){ cfg.noSteal = Convert.ToBoolean(data);}
                         else if (key == "FullScriptDebugging"){ cfg.fullScriptDebugging = Convert.ToBoolean(data);}
                         else if (key == "DontUseToken"){ cfg.ignoreToken = Convert.ToBoolean(data);}
+                        else if (key == "AllTTS"){ cfg.allMessagesTTS = Convert.ToBoolean(data);}
                     }
                     catch{ }
                 }
@@ -129,11 +131,6 @@ namespace TwitchBot
             {
                 //the file doesnt exist, create it
                 await SaveSystem.CreatePlaintextFile("config.dat", writeConfig);
-                //string fPath = $"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\\ReplayStudios\\BeanBot\\config.dat";
-                //launch the file at fPAth in the default text editor
-                //Process.Start("notepad.exe", fPath);
-                //Console.WriteLine("Configure The Config File Then Restart The Bot");
-                //await Task.Delay(-1);
             }
             //update the config file with any new values
             writeConfig = GetConfigString(cfg);
@@ -201,6 +198,7 @@ NoSteal<{cfg.noSteal}    / Disable !Steal [True | False] (default = False)
 AutoPadlock<{cfg.autoChannelPadlock}    / automatically gives the streamer a padlock [True | False] (default = False)
 NotifyOnJoin<{cfg.notifyOnJoin}    / notify the chat when the bot joins [True | False] (default = True)
 ---OTHER---
+AllTTS<{cfg.allMessagesTTS}    / make all messages tts [True | False] (default = False)
 LurkCommands<{cfg.lurkCommands}    / enable lurk and unlurk commands [True | False] (default = False)
 FullScriptDebugging<{cfg.fullScriptDebugging}    / enable full script debugging [True | False] (default = False)
 UploadFullCommandList<{cfg.uploadFullCommandList}    / upload the full command list for online viewing [True | False] (default = True)";
@@ -212,7 +210,7 @@ public class BotSystem{
     public string name, channel, prefix, currency, currencies, ttsVoice;
     public bool warnIfBadSyntax, notifyOnJoin, notifyOnDropsRemaining, chatSayTTSCost, betaTTSFilter, noFloor, noSteal,
     noMinigamesStack, uploadFullCommandList, ignoreToken, autoDeleteSpam, autoChannelPadlock, allowModpadlock,
-    lurkCommands, fullScriptDebugging;
+    lurkCommands, fullScriptDebugging, allMessagesTTS;
     public int ttsCost, ttsPerToken, baseTTSTokens, pointsFromDrop, taxPercent, taxThreshold, dailyPoints,
     t1points, t2points, t3points, t1gold, t2gold, t3gold, minigamesCost, minigamesDuration, minigamesCooldown,
     dropTimer, dropPercent, giveTaxPercent, t1TTS, t2TTS, t3TTS;

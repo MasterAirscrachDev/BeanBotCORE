@@ -109,9 +109,27 @@ namespace TwitchBot
             
             
         }
+        public async Task SystemSay(string message, string user){
+            int length = message.Length;
+            if(Program.config.betaTTSFilter && (length > 10 || length == 1)){
+                if(!FilterText(message)){ return; }
+            }
+            //split the message into words
+            string[] words = message.Split(' ');
+            for(int i = 0; i < words.Length; i++){
+                foreach(TTSReplace r in ttsReplaceList){
+                    if(words[i] == r.replace){
+                        words[i] = r.with;
+                    }
+                }
+            }
+            message = string.Join(" ", words);
+            message = $"{user} said {message}";
+            voice.SpeakAsync(message);
+        }
         public async Task<ProcessData> Say(ProcessData data)
         {
-            string message = "";
+            string message;
             try { message = data.message.content.Remove(0, 4); } catch {
                 data.returnMessage = $"@{data.message.sender} Please enter a message to say";
                 return data;
@@ -157,6 +175,9 @@ namespace TwitchBot
             }
             
         }
+
+
+
         bool FilterText(string message){
             if(message.Length == 1){ Program.Log("TTS Failed: single char message", MessageType.Warning); return false;}
             //do checks for the message to prevent spam

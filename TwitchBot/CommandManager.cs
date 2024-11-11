@@ -359,6 +359,10 @@ namespace TwitchBot
             DelaySave(data.user);
             await Program.SendMessage(data.returnMessage, data.message.isWhisper ? data.message.sender : null); return;
         }
+        public Task RunSystemTTS(string text, string user){
+            TTSmanager.SystemSay(text, user);
+            return Task.CompletedTask;
+        }
         public async Task GetPoints(Message message)
         {
             if (botsToIgnore.Contains(message.sender.ToLower())) { return; }

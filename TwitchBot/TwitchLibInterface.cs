@@ -274,7 +274,7 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
             }
             m.usermod = (e.ChatMessage.IsModerator || e.ChatMessage.IsBroadcaster || SpecialDat.devs.Contains(e.ChatMessage.DisplayName.ToLower()));
             m.userdev = SpecialDat.devs.Contains(e.ChatMessage.DisplayName.ToLower());
-            if((e.ChatMessage.Bits < 1 && tempBanned.Any(x => x.username == e.ChatMessage.Username)))
+            if(e.ChatMessage.Bits < 1 && tempBanned.Any(x => x.username == e.ChatMessage.Username))
             { QuickDelete = true; QuickDeleteReason = "You are temp banned"; }
             if(QuickDelete && !m.usermod){ Program.twitchLibInterface.bot.DeleteMessage(e.ChatMessage.Id); return; }
             
@@ -282,12 +282,18 @@ Thanks For Using beanbot, Please Report Any Bugs To masterairscrach666 On Discor
             //if the user isnt in chatters, add them
             //if the last char is a space, remove it
             if(m.content.EndsWith(" ")){ m.content = m.content.Remove(m.content.Length - 1); }
-            //chatters.Add(m.sender);
 
             if(m.content.StartsWith(Program.config.prefix)){
                 Program.LogMessage(true, m, ratio);
                 m.content = m.content.Remove(0, Program.config.prefix.Length);
-            }else{ Program.LogMessage(false, m, ratio); Task.Run(() => Program.commandManager.GetPoints(m)); return; }
+            }else{ 
+                Program.LogMessage(false, m, ratio); 
+                Task.Run(() => Program.commandManager.GetPoints(m)); 
+                if(Program.config.allMessagesTTS){
+                    Program.commandManager.RunSystemTTS(m.content, m.sender);
+                }
+                return; 
+            }
             m.channel = e.ChatMessage.Channel;
             m.color = e.ChatMessage.ColorHex;
             m.messageID = e.ChatMessage.Id;

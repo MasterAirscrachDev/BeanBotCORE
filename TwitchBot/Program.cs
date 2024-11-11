@@ -10,7 +10,7 @@ namespace TwitchBot
     {
         public static List<string> sendList = new List<string>();
         public static BotSystem config;
-        public static string version = "v1.3.6",
+        public static string version = "v1.3.7",
         decodeString = null;
         public static EventSystem eventSystem;
         public static CommandManager commandManager;
@@ -285,7 +285,6 @@ AUTH:{realAuthKey}", MessageType.Debug);
         public static async Task<Save> GetServerData(int recuse = 0){
             NetSys.Client client = new NetSys.Client();
             client.Connect(SpecialDat.GetServerIP(config.channel));
-            //client.Connect("192.168.0.50");
             string exepath = System.Reflection.Assembly.GetExecutingAssembly().Location.Replace(":","։");
             //Log(exepath);
             string secret = "";
