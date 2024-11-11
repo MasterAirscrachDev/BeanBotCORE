@@ -36,7 +36,7 @@ namespace TwitchBot
                 Program.Log($"AuthKey: {authKey}", MessageType.Success);
                 SaveAuthKey(authKey);
             }
-            if (botsToIgnore.Contains(message.sender.ToLower()) || !Program.authConfirmed) { Program.Log("Not AuthCOnfirmd");  return; }
+            if (botsToIgnore.Contains(message.sender.ToLower()) || !Program.authConfirmed) { Program.Log("Not AuthConfirmd");  return; }
             GetPoints(message);
             //get the user from the savesystem getUser task
             ProcessData data = new ProcessData();
